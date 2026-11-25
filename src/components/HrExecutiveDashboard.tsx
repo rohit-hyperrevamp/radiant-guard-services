@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Building2, CalendarRange, Landmark, MapPin, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useHasSupabaseSession } from "@/lib/supabase-ready";
 import { PageStat } from "@/components/PageHeader";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -70,7 +71,11 @@ function Breakdown({ title, items, active, onPick, onAll }: { title: string; ite
 }
 
 export function HrExecutiveDashboard() {
-  const q = useQuery({ queryKey: ["hr-executive-clients"], queryFn: fetchMyClients, staleTime: 60_000 });
+  // Wait for a real session: without the bearer token RLS returns nothing and
+  // the empty answer was cached as "0 clients".
+  const sessionReady = useHasSupabaseSession();
+  const q = useQuery({ queryKey: ["hr-executive-clients"], queryFn: fetchMyClients, staleTime: 60_000, enabled: sessionReady });
+  const pendingValue = q.isError ? "—" : "…";
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<Partial<Record<"df" | "cycle" | "day" | "type", string[]>>>({});
   const [page, setPage] = useState(0);
@@ -126,21 +131,21 @@ export function HrExecutiveDashboard() {
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
         <PageStat
           label="Organizations"
-          value={q.isLoading ? "…" : organizations}
+          value={!q.data ? pendingValue : organizations}
           icon={Building2}
           sub="Across your portfolio"
           accent="violet"
         />
         <PageStat
           label="Clients"
-          value={q.isLoading ? "…" : view.rows.length}
+          value={!q.data ? pendingValue : view.rows.length}
           icon={MapPin}
           sub="Mapped to you"
           accent="sky"
         />
         <PageStat
           label="Banks"
-          value={q.isLoading ? "…" : banks}
+          value={!q.data ? pendingValue : banks}
           icon={Landmark}
           sub="Client bifurcation"
           accent="emerald"
@@ -152,7 +157,7 @@ export function HrExecutiveDashboard() {
         />
         <PageStat
           label="Pay cycles"
-          value={q.isLoading ? "…" : payCycles}
+          value={!q.data ? pendingValue : payCycles}
           icon={CalendarRange}
           sub="Configured schedules"
           accent="amber"
@@ -192,7 +197,7 @@ export function HrExecutiveDashboard() {
               <TableCell className="whitespace-nowrap px-4">{view.day(r)}</TableCell><TableCell className="px-4 tabular-nums">{view.df(r)}</TableCell><TableCell className="px-4">{r.salary_slip_required == null ? "—" : r.salary_slip_required ? "Yes" : "No"}</TableCell>
               <TableCell className="truncate px-4" title={(r.payroll_manager_id && q.data?.people.get(r.payroll_manager_id)) || undefined}>{(r.payroll_manager_id && q.data?.people.get(r.payroll_manager_id)) || "—"}</TableCell>
             </TableRow>)}
-            {!shown.length && <TableRow><TableCell colSpan={9} className="h-28 text-center text-muted-foreground">{q.isLoading ? "Loading…" : "No clients match this view"}</TableCell></TableRow>}
+            {!shown.length && <TableRow><TableCell colSpan={9} className="h-28 text-center text-muted-foreground">{q.isError ? "Your clients could not be loaded. Refresh to try again." : !q.data ? "Loading…" : "No clients match this view. Clear the filters or search."}</TableCell></TableRow>}
           </TableBody>
         </Table>
         <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border/60 px-3 py-3 text-sm sm:px-5">

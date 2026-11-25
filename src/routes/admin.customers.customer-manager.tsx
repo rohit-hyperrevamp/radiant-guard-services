@@ -63,6 +63,9 @@ import { cn } from "@/lib/utils";
 import { useOperationalUnitScope } from "@/lib/use-manager-scope";
 import { UnitDeployedPeople } from "@/components/UnitDeployedPeople";
 import { GuidedForm, useGuidedFormCloseGuard, useGuidedFormDraft, type GuidedFormStep } from "@/components/GuidedForm";
+import { usePincodeRanges } from "@/lib/pt-lookup";
+import { plainDbError } from "@/lib/form-copy";
+import { canonicalState, guardedStepTarget, stateForPincode, stateOptions, validateOrgStep, type StepProblem } from "@/lib/org-wizard";
 
 const SALUTATIONS = ["Mr.", "Mrs.", "Ms.", "Dr.", "Mx."];
 
@@ -138,7 +141,7 @@ function CustomerManagerPage() {
         title="Organizations"
         eyebrow="Organizations"
         icon={Network}
-        description="Onboard organisations and manage their contract details."
+        description="Onboard organizations and manage their contract details."
         crumbs={[
           { label: "Organizations", to: "/admin/customers/customer-manager" },
           { label: "Organizations" },
@@ -212,7 +215,7 @@ function CustomerManagerPage() {
             className="h-9 shrink-0 whitespace-nowrap rounded-lg bg-primary px-2.5 text-xs text-primary-foreground shadow-sm hover:bg-primary/90 sm:h-10 sm:rounded-xl sm:px-4 sm:text-sm"
           >
             <Plus className="mr-1.5 h-4 w-4 shrink-0" />
-            <span className="sm:hidden">Add</span><span className="hidden sm:inline">Add Organization</span>
+            <span className="sm:hidden">Add</span><span className="hidden sm:inline">Add organization</span>
           </Button>
         </div>
       </div>
@@ -227,7 +230,7 @@ function CustomerManagerPage() {
             <thead className="bg-secondary/60 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               <tr>
                 <th className="px-5 py-3">Org ID</th>
-                <th className="px-5 py-3">Organisation</th>
+                <th className="px-5 py-3">Organization</th>
                 <th className="px-5 py-3">Website</th>
                 <th className="px-5 py-3">Phone</th>
                 <th className="px-5 py-3">Status</th>
@@ -292,7 +295,7 @@ function CustomerManagerPage() {
                       </Button>
                       <RecordViewButton
                         record={c}
-                        title="Customer details"
+                        title="Organization details"
                         onEdit={() => { setEditing(c);
                           setFormOpen(true); }}
                       />
@@ -304,7 +307,7 @@ function CustomerManagerPage() {
                           setEditing(c);
                           setFormOpen(true);
                         }}
-                        aria-label="Edit"
+                        aria-label="Edit organization"
                       >
                         <Edit2 className="h-4 w-4" />
                       </Button>
@@ -324,7 +327,7 @@ function CustomerManagerPage() {
               {rows.length === 0 && (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={6}
                     className="px-5 py-12 text-center text-sm text-muted-foreground"
                   >
                     <Users className="mx-auto mb-2 h-6 w-6 opacity-50" />
@@ -665,8 +668,11 @@ function CustomerFormDialog({
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [stepKey, setStepKey] = useState("profile");
+  const [stepProblem, setStepProblem] = useState<StepProblem | null>(null);
   const [split, setSplit] = useState<InvoiceSplit>(DEFAULT_SPLIT);
   const qcSplit = useQC();
+  const { states: stateMaster } = useStates();
+  const { data: pincodeRanges = [] } = usePincodeRanges();
 
   useEffect(() => {
     if (!open) return;
@@ -678,6 +684,7 @@ function CustomerFormDialog({
       setForm({ ...emptyCustomer(), code: nextCustomerCode(customers) });
     }
     setError(null);
+    setStepProblem(null);
     setStepKey("profile");
   }, [open, editing, customers]);
   useEffect(() => {
@@ -689,6 +696,23 @@ function CustomerFormDialog({
   const set = <K extends keyof Omit<Customer, "id">>(key: K, value: Omit<Customer, "id">[K]) => {
     setForm((f) => ({ ...f, [key]: value }));
     setError(null);
+    setStepProblem((p) => (p && p.field === key ? null : p));
+  };
+  const masterStateNames = useMemo(() => stateMaster.map((s) => s.name), [stateMaster]);
+  /** Pincode typed: fill an empty state from pincode_ranges when it is unambiguous. */
+  const setPincode = (prefix: "billing" | "shipping", value: string) => {
+    const pinKey = `${prefix}Pincode` as const;
+    const stateField = `${prefix}State` as const;
+    setForm((f) => {
+      const next = { ...f, [pinKey]: value };
+      if (!f[stateField].trim()) {
+        const found = stateForPincode(value, pincodeRanges);
+        if (found) next[stateField] = canonicalState(found, stateOptions(masterStateNames));
+      }
+      return next;
+    });
+    setError(null);
+    setStepProblem((p) => (p && p.field === pinKey ? null : p));
   };
 
   const handleLogo = async (file: File | null) => {
@@ -726,6 +750,46 @@ function CustomerFormDialog({
     { key: "billingPhone", label: "Phone" },
     { key: "billingFax", label: "Alternate phone" },
   ];
+  const fieldError = (key: string) => (stepProblem && stepProblem.field === key ? stepProblem.message : undefined);
+  const renderAddressInput = (f: { key: keyof Omit<Customer, "id">; label: string; placeholder?: string }, prefix: "billing" | "shipping") => {
+    const key = String(f.key);
+    const isPincode = key === `${prefix}Pincode`;
+    const isPhone = key === `${prefix}Phone` || key === `${prefix}Fax`;
+    const id = `org-${key}`;
+    if (key === `${prefix}State`) {
+      const current = (form[f.key] as string) ?? "";
+      return (
+        <SearchSelect
+          id={id}
+          ariaLabel={f.label}
+          value={current}
+          onChange={(next) => set(f.key, next as never)}
+          placeholder="Select state…"
+          searchPlaceholder="Search states…"
+          options={stateOptions(masterStateNames, current).map((name) => ({ value: name, label: name }))}
+        />
+      );
+    }
+    return (
+      <Input
+        id={id}
+        value={(form[f.key] as string) ?? ""}
+        aria-invalid={fieldError(key) ? true : undefined}
+        onChange={(e) => {
+          let v = e.target.value;
+          if (isPincode) {
+            setPincode(prefix, v.replace(/\D/g, "").slice(0, 6));
+            return;
+          }
+          if (isPhone) v = v.replace(/\D/g, "").slice(0, 10);
+          set(f.key, v as never);
+        }}
+        placeholder={f.placeholder ?? (isPincode ? "6-digit pincode" : isPhone ? "10-digit number" : undefined)}
+        inputMode={isPincode || isPhone ? "numeric" : undefined}
+        maxLength={isPincode ? 6 : isPhone ? 10 : undefined}
+      />
+    );
+  };
   const shippingFields = billingFields.map((f) => ({
     ...f,
     key: f.key.toString().replace("billing", "shipping") as keyof Omit<Customer, "id">,
@@ -739,36 +803,22 @@ function CustomerFormDialog({
     { key: "invoice", label: "Invoice format", caption: "One or more invoices and what each includes" },
     { key: "review", label: "Review", caption: "Check and create the organization" },
   ];
-  const validateStep = (key: string) => {
-    if (key === "profile") {
-      if (!form.code.trim()) return "Organization ID is required";
-      if (!form.name.trim()) return "Organization name is required";
-    }
-    if (key === "billing" && form.billingPincode && !/^\d{6}$/.test(form.billingPincode)) return "Enter a valid 6-digit billing pincode";
-    if (key === "deployment" && !form.shippingSameAsBilling && form.shippingPincode && !/^\d{6}$/.test(form.shippingPincode)) return "Enter a valid 6-digit deployment pincode";
-    return null;
-  };
+  const validateStep = (key: string) => validateOrgStep(form, key)?.message ?? null;
   const isStepComplete = (key: string): boolean => {
-    if (key === "profile") return !validateStep(key);
-    if (key === "contact") return Boolean(form.billingName.trim());
-    if (key === "billing") return Boolean(form.billingAddress1.trim() && form.billingCity.trim() && !validateStep(key));
-    if (key === "deployment") return form.shippingSameAsBilling || Boolean(form.shippingAddress1.trim() && form.shippingCity.trim() && !validateStep(key));
+    if (["profile", "contact", "billing", "deployment"].includes(key)) return !validateStep(key);
     if (key === "invoice") return split.parts.every((p) => p.label.trim());
     return steps.slice(0, 4).every((step) => isStepComplete(step.key));
   };
   const requestStep = (key: string) => {
-    const currentIndex = steps.findIndex((step) => step.key === stepKey);
-    const targetIndex = steps.findIndex((step) => step.key === key);
-    if (targetIndex > currentIndex) {
-      for (let index = 0; index < targetIndex; index += 1) {
-        const problem = validateStep(steps[index].key);
-        if (problem) {
-          toast.warning(`${steps[index].label} is incomplete: ${problem}`);
-          break;
-        }
-      }
+    const { step, blockedBy } = guardedStepTarget(steps.map((s) => s.key), stepKey, key, validateStep);
+    if (blockedBy) {
+      const problem = validateOrgStep(form, blockedBy);
+      setStepProblem(problem);
+      if (problem) toast.error(problem.message);
+    } else {
+      setStepProblem(null);
     }
-    setStepKey(key);
+    setStepKey(step);
   };
   const restoreDraft = useCallback((draft: Omit<Customer, "id">) => setForm(draft), []);
   const meaningfulDraft = useCallback((draft: Omit<Customer, "id">) => Boolean(draft.name || draft.billingName || draft.billingAddress1), []);
@@ -781,9 +831,10 @@ function CustomerFormDialog({
   });
   const submitForm = async () => {
     for (const step of steps.slice(0, 4)) {
-      const problem = validateStep(step.key);
+      const problem = validateOrgStep(form, step.key);
       if (problem) {
-        toast.error(problem);
+        toast.error(problem.message);
+        setStepProblem(problem);
         setStepKey(step.key);
         return;
       }
@@ -795,14 +846,22 @@ function CustomerFormDialog({
     }
     setSubmitting(true);
     try {
-      const result = await onSubmit(form);
+      const result = await onSubmit({
+        ...form,
+        billingState: form.billingState.trim(),
+        shippingState: form.shippingState.trim(),
+      });
       if (result.error) {
-        setError(result.error);
+        console.error("[Organizations] save failed:", result.error);
+        setError(plainDbError(result.error, "organization"));
         return;
       }
       if (result.id) {
         const splitErr = await saveOrgInvoiceSplit(result.id, split);
-        if (splitErr) toast.error(`Organization saved, but invoice format failed: ${splitErr}`);
+        if (splitErr) {
+          console.error("[Organizations] invoice format save failed:", splitErr);
+          toast.error(`Organization saved, but the invoice format could not be saved. ${plainDbError(splitErr, "invoice format")}`);
+        }
         void qcSplit.invalidateQueries({ queryKey: ["org-invoice-split"] });
       }
       draft.clear();
@@ -828,6 +887,8 @@ function CustomerFormDialog({
           onStepChange={requestStep}
           isStepComplete={isStepComplete}
           onCancel={() => onOpenChange(false)}
+          onDiscard={editing ? undefined : draft.clear}
+          entityLabel="organization"
           onSaveDraft={editing ? undefined : () => { draft.save(); toast.success("Draft saved"); }}
           onSubmit={() => void submitForm()}
           saving={submitting || uploading}
@@ -835,46 +896,59 @@ function CustomerFormDialog({
         >
           {draft.hasDraft && !editing && stepKey === "profile" && (
             <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-accent/25 bg-accent/5 px-4 py-3 text-sm">
-              <span className="text-muted-foreground">Saved draft available</span>
+              <span className="text-muted-foreground">You have a saved draft</span>
               <Button type="button" size="sm" variant="outline" onClick={() => { draft.restore(); toast.success("Draft restored"); }}>Restore</Button>
             </div>
+          )}
+          {stepProblem && (
+            <p role="alert" className="mb-4 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-2.5 text-sm font-medium text-destructive">
+              {stepProblem.message}
+            </p>
           )}
           {stepKey === "profile" && <section className="modern-form-section">
             <SectionHeading title="Organization profile" />
             <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Organisation ID" required>
+            <Field label="Organization ID" required htmlFor="org-code" error={fieldError("code")}>
               <Input
+                id="org-code"
+                aria-invalid={fieldError("code") ? true : undefined}
                 value={form.code}
                 onChange={(e) => set("code", e.target.value.toUpperCase())}
                 placeholder="ORG1"
                 className="font-mono"
               />
             </Field>
-            <Field label="Organisation name" required>
+            <Field label="Organization name" required htmlFor="org-name" error={fieldError("name")}>
               <Input
+                id="org-name"
+                aria-invalid={fieldError("name") ? true : undefined}
                 value={form.name}
                 onChange={(e) => set("name", e.target.value)}
                 placeholder="Acme Industries Pvt Ltd"
                 autoFocus
               />
             </Field>
-            <Field label="Short name">
+            <Field label="Short name" htmlFor="org-shortName">
               <Input
+                id="org-shortName"
                 value={form.shortName}
                 onChange={(e) => set("shortName", e.target.value)}
                 placeholder="Acme"
               />
             </Field>
-            <Field label="Industry / Organization type">
+            <Field label="Industry" htmlFor="org-industryType">
               <SearchSelect
+                id="org-industryType"
+                ariaLabel="Industry"
                 value={form.industryType}
                 onChange={(next) => set("industryType", next)}
                 placeholder="Select industry…"
                 options={[{ value: "", label: "Select industry…" }, ...INDUSTRY_TYPES.map((type) => ({ value: type, label: type }))]}
               />
             </Field>
-            <Field label="Website">
+            <Field label="Website" htmlFor="org-website">
               <Input
+                id="org-website"
                 value={form.website}
                 onChange={(e) => set("website", e.target.value)}
                 placeholder="acme.com"
@@ -886,6 +960,7 @@ function CustomerFormDialog({
                   {form.status === "active" ? "Active" : "Inactive"}
                 </span>
                 <Switch
+                  aria-label="Organization is active"
                   checked={form.status === "active"}
                   onCheckedChange={(v) => set("status", v ? "active" : "inactive")}
                 />
@@ -899,7 +974,7 @@ function CustomerFormDialog({
             <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Salutation">
               <Select value={form.billingSalutation} onValueChange={(value) => set("billingSalutation", value)}>
-                <SelectTrigger>
+                <SelectTrigger aria-label="Salutation">
                   <SelectValue placeholder="Select salutation" />
                 </SelectTrigger>
                 <SelectContent>
@@ -910,8 +985,10 @@ function CustomerFormDialog({
               </Select>
             </Field>
             {contactFields.map((f) => (
-              <Field key={f.key} label={f.label} full={f.full} required={REQUIRED_ORG_FIELD_KEYS.has(f.key)}>
+              <Field key={f.key} label={f.label} full={f.full} required={REQUIRED_ORG_FIELD_KEYS.has(f.key)} htmlFor={`org-${f.key}`} error={fieldError(f.key)}>
                 <Input
+                  id={`org-${f.key}`}
+                  aria-invalid={fieldError(f.key) ? true : undefined}
                   value={(form[f.key] as string) ?? ""}
                   onChange={(e) => set(f.key, e.target.value as never)}
                   placeholder={f.placeholder}
@@ -924,35 +1001,21 @@ function CustomerFormDialog({
           {stepKey === "billing" && <section className="modern-form-section">
             <SectionHeading title="Billing information" />
             <div className="grid gap-4 sm:grid-cols-2">
-            {billingFields.map((f) => {
-              const isPincode = f.key === "billingPincode";
-              const isPhone = f.key === "billingPhone" || f.key === "billingFax";
-              return (
-                <Field key={f.key} label={f.label} full={f.full} required={REQUIRED_ORG_FIELD_KEYS.has(f.key)}>
-                  <Input
-                    value={(form[f.key] as string) ?? ""}
-                    onChange={(e) => {
-                      let v = e.target.value;
-                      if (isPincode) v = v.replace(/\D/g, "").slice(0, 6);
-                      else if (isPhone) v = v.replace(/\D/g, "").slice(0, 10);
-                      set(f.key, v as never);
-                    }}
-                    placeholder={f.placeholder ?? (isPincode ? "6-digit pincode" : isPhone ? "10-digit number" : undefined)}
-                    inputMode={isPincode || isPhone ? "numeric" : undefined}
-                    maxLength={isPincode ? 6 : isPhone ? 10 : undefined}
-                  />
-                </Field>
-              );
-            })}
+            {billingFields.map((f) => (
+              <Field key={f.key} label={f.label} full={f.full} required={REQUIRED_ORG_FIELD_KEYS.has(f.key)} htmlFor={`org-${f.key}`} error={fieldError(f.key)}>
+                {renderAddressInput(f, "billing")}
+              </Field>
+            ))}
             </div>
           </section>}
 
           {stepKey === "deployment" && <section className="modern-form-section">
             <div className="mb-3 flex items-center justify-between gap-3 border-b border-border pb-2">
-              <SectionHeading title="Shipping / Deployment address" inline />
+              <SectionHeading title="Deployment address" inline />
               <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
                 Same as billing
                 <Switch
+                  aria-label="Deployment address same as billing"
                   checked={form.shippingSameAsBilling}
                   onCheckedChange={(v) => set("shippingSameAsBilling", v)}
                 />
@@ -960,26 +1023,11 @@ function CustomerFormDialog({
             </div>
             {!form.shippingSameAsBilling && (
               <div className="grid gap-4 sm:grid-cols-2">
-                {shippingFields.map((f) => {
-                  const isPincode = f.key === "shippingPincode";
-                  const isPhone = f.key === "shippingPhone" || f.key === "shippingFax";
-                  return (
-                    <Field key={f.key} label={f.label} full={f.full} required={REQUIRED_ORG_FIELD_KEYS.has(f.key)}>
-                      <Input
-                        value={(form[f.key] as string) ?? ""}
-                        onChange={(e) => {
-                          let v = e.target.value;
-                          if (isPincode) v = v.replace(/\D/g, "").slice(0, 6);
-                          else if (isPhone) v = v.replace(/\D/g, "").slice(0, 10);
-                          set(f.key, v as never);
-                        }}
-                        placeholder={f.placeholder ?? (isPincode ? "6-digit pincode" : isPhone ? "10-digit number" : undefined)}
-                        inputMode={isPincode || isPhone ? "numeric" : undefined}
-                        maxLength={isPincode ? 6 : isPhone ? 10 : undefined}
-                      />
-                    </Field>
-                  );
-                })}
+                {shippingFields.map((f) => (
+                  <Field key={f.key} label={f.label} full={f.full} required={REQUIRED_ORG_FIELD_KEYS.has(f.key)} htmlFor={`org-${f.key}`} error={fieldError(f.key)}>
+                    {renderAddressInput(f, "shipping")}
+                  </Field>
+                ))}
               </div>
             )}
           </section>}
@@ -1071,19 +1119,24 @@ function Field({
   children,
   full,
   required,
+  htmlFor,
+  error,
 }: {
   label: string;
   children: React.ReactNode;
   full?: boolean;
   required?: boolean;
+  htmlFor?: string;
+  error?: string;
 }) {
   return (
     <div className={cn("modern-form-field", full && "sm:col-span-2")}>
-      <Label className="font-medium text-foreground">
+      <Label htmlFor={htmlFor} className="font-medium text-foreground">
         {label}
-        {required && <span className="ml-0.5 text-destructive">*</span>}
+        {required && <span aria-hidden="true" className="ml-0.5 text-destructive">*</span>}
       </Label>
       {children}
+      {error && <p className="text-xs font-medium text-destructive">{error}</p>}
     </div>
   );
 }

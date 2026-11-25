@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { OrgSettings } from "@/lib/org-settings";
-export { taxSplit } from "./gst-tax";
+import { normalizeState } from "./gst-tax";
+export { taxSplit, normalizeState } from "./gst-tax";
 
 export type GstBillingBranch = {
   id: string;
@@ -14,10 +15,6 @@ export type GstBillingBranch = {
   stateCode: string;
   isDefault: boolean;
 };
-
-export function normalizeState(value: string | null | undefined) {
-  return String(value ?? "").trim().toLowerCase().replace(/[^a-z]/g, "");
-}
 
 export async function loadGstBillingBranches(): Promise<GstBillingBranch[]> {
   const { data, error } = await supabase

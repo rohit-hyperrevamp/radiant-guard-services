@@ -12,6 +12,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllPages } from "@/lib/supabase-batch";
+import { roundDutyDays } from "@/lib/duty-days";
 
 export type BaseRow = Record<string, unknown>;
 
@@ -31,8 +32,143 @@ export type DashboardBase = {
 
 const TTL_MS = 60_000;
 
-let cached: { at: number; data: DashboardBase } | null = null;
-let inflight: Promise<DashboardBase> | null = null;
+/* ------------------------------------------------------------------ */
+/* India-time date helpers (pure).                                     */
+/* `toISOString()` is UTC: between 00:00 and 05:30 IST it still says   */
+/* "yesterday", and a local month start converts to the previous day.  */
+/* ------------------------------------------------------------------ */
+
+const IST_FORMAT = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Kolkata",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+/** Today's calendar date in India (YYYY-MM-DD). */
+export function istDate(now: Date = new Date()): string {
+  return IST_FORMAT.format(now);
+}
+
+/** Add whole days to a YYYY-MM-DD date without any time-zone drift. */
+export function istAddDays(date: string, days: number): string {
+  const d = new Date(`${date}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+/** First and last calendar day of the current India month (YYYY-MM-DD). */
+export function istMonthRange(now: Date = new Date()): { start: string; end: string } {
+  const [y, m] = istDate(now).split("-").map(Number);
+  const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const mm = String(m).padStart(2, "0");
+  return { start: `${y}-${mm}-01`, end: `${y}-${mm}-${String(last).padStart(2, "0")}` };
+}
+
+export type AttendanceCodeMeta = {
+  code: string;
+  counts_as_present?: boolean | null;
+  is_leave?: boolean | null;
+  is_paid?: boolean | null;
+  day_value?: number | string | null;
+};
+
+/**
+ * One person's month from their own attendance rows. Present follows the
+ * attendance code master (`counts_as_present`, weighted by `day_value`) —
+ * not "any code except A/L", which counted WO/PH as present and Late ("L")
+ * as leave. `ot_hours` stores Extra Duty in days.
+ */
+export function summarizeMyAttendance(
+  rows: ReadonlyArray<{ code: string | null; ot_hours: number | string | null }>,
+  codes: ReadonlyArray<AttendanceCodeMeta> | null | undefined,
+): { present: number; absent: number; leave: number; edDays: number; total: number } {
+  const meta = new Map((codes ?? []).map((c) => [String(c.code).toUpperCase(), c]));
+  let present = 0;
+  let absent = 0;
+  let leave = 0;
+  let edDays = 0;
+  for (const r of rows) {
+    const code = (r.code || "").toUpperCase();
+    edDays += Number(r.ot_hours || 0);
+    if (!code) continue;
+    const m = meta.get(code);
+    if (m) {
+      if (m.counts_as_present) {
+        const dv = Number(m.day_value);
+        present += Number.isFinite(dv) && dv > 0 ? dv : 1;
+      } else if (m.is_leave) leave++;
+      else if (m.is_paid === false) absent++;
+    } else if (code === "P") present++;
+    else if (code === "A") absent++;
+  }
+  return {
+    present: roundDutyDays(present),
+    absent,
+    leave,
+    edDays: roundDutyDays(edDays),
+    total: rows.length,
+  };
+}
+
+type SelfCandidate = {
+  id: string;
+  status?: string | null;
+  is_enabled?: boolean | null;
+  approved_at?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+/**
+ * Pick the signed-in person's own employee row from every row sharing their
+ * mobile. Rehires leave two live rows on one number, so `.maybeSingle()`
+ * threw; prefer enabled, then active/approved, then the most recent record.
+ */
+export function pickSelfEmployee<T extends SelfCandidate>(rows: readonly T[] | null | undefined): T | null {
+  if (!rows?.length) return null;
+  const live = (s?: string | null) => (s === "active" || s === "approved" ? 1 : 0);
+  const stamp = (r: T) => r.approved_at || r.created_at || r.updated_at || "";
+  return [...rows].sort(
+    (a, b) =>
+      Number(b.is_enabled !== false) - Number(a.is_enabled !== false) ||
+      live(b.status) - live(a.status) ||
+      stamp(b).localeCompare(stamp(a)) ||
+      b.id.localeCompare(a.id),
+  )[0];
+}
+
+/* ------------------------------------------------------------------ */
+/* Per-user cache. Keyed by the signed-in user so a shared device never */
+/* shows the previous person's base data, and dropped on sign-out.     */
+/* ------------------------------------------------------------------ */
+
+let cached: { at: number; owner: string | null; data: DashboardBase } | null = null;
+let inflight: { owner: string | null; promise: Promise<DashboardBase> } | null = null;
+let authWatch = false;
+
+async function currentOwner(): Promise<string | null> {
+  try {
+    const { data } = await supabase.auth.getSession();
+    return data.session?.user.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function watchIdentity() {
+  if (authWatch || typeof window === "undefined") return;
+  authWatch = true;
+  try {
+    supabase.auth.onAuthStateChange((_event, session) => {
+      const owner = session?.user.id ?? null;
+      if (cached && cached.owner !== owner) cached = null;
+      if (inflight && inflight.owner !== owner) inflight = null;
+    });
+  } catch {
+    authWatch = false;
+  }
+}
 
 async function load(): Promise<DashboardBase> {
   const [
@@ -115,21 +251,28 @@ async function load(): Promise<DashboardBase> {
 }
 
 /** Load the shared lookups, reusing a recent result or an in-flight request. */
-export function loadDashboardBase(): Promise<DashboardBase> {
-  if (cached && Date.now() - cached.at < TTL_MS) return Promise.resolve(cached.data);
-  if (inflight) return inflight;
-  inflight = load()
-    .then((data) => {
-      cached = { at: Date.now(), data };
-      return data;
-    })
-    .finally(() => {
-      inflight = null;
-    });
-  return inflight;
+export async function loadDashboardBase(): Promise<DashboardBase> {
+  watchIdentity();
+  const owner = await currentOwner();
+  if (cached && cached.owner === owner && Date.now() - cached.at < TTL_MS) return cached.data;
+  if (inflight && inflight.owner === owner) return inflight.promise;
+  const entry = {
+    owner,
+    promise: load()
+      .then((data) => {
+        if (inflight === entry) cached = { at: Date.now(), owner, data };
+        return data;
+      })
+      .finally(() => {
+        if (inflight === entry) inflight = null;
+      }),
+  };
+  inflight = entry;
+  return entry.promise;
 }
 
-/** Drop the cache so the next read hits the database (used after writes). */
+/** Drop the cache so the next read hits the database (used after writes and sign-out). */
 export function invalidateDashboardBase() {
   cached = null;
+  inflight = null;
 }

@@ -5,6 +5,16 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentPermissions } from "@/lib/rbac";
 import { logActivity } from "@/lib/activity-log";
@@ -25,10 +35,15 @@ export const Route = createFileRoute("/admin/system-backups")({
 
 type Snap = { id: string; label: string; created_at: string; restored_at: string | null; table_count: number };
 
+/** Word the user must type before a whole-system restore is allowed. */
+const RESET_CONFIRM_WORD = "RESET";
+
 function SystemBackups() {
   const { isSuperAdmin } = useCurrentPermissions();
   const qc = useQueryClient();
   const [label, setLabel] = useState("");
+  const [pending, setPending] = useState<Snap | null>(null);
+  const [typed, setTyped] = useState("");
   const list = useQuery({
     queryKey: ["system-snapshots"],
     queryFn: async () => {
@@ -60,6 +75,7 @@ function SystemBackups() {
       return s;
     },
     onSuccess: (s) => {
+      setPending(null);
       toast.success(`Restored to "${s.label}". Reloading…`);
       setTimeout(() => window.location.reload(), 1200);
     },
@@ -72,16 +88,25 @@ function SystemBackups() {
     <div className="space-y-4">
       <PageHeader
         title="System Backups"
-        description="Save the whole system and put it back to a saved point."
+        description="Save the whole system and restore it to a saved point."
         crumbs={[{ label: "Control Center", to: "/admin/control-center" } as never, { label: "System Backups" }]}
       />
       <div className="flex gap-2 rounded-xl border border-border bg-card p-4">
-        <Input placeholder="Backup name" value={label} onChange={(e) => setLabel(e.target.value)} />
-        <Button disabled={create.isPending} onClick={() => create.mutate()}>
+        <Input aria-label="Backup name" placeholder="Backup name" value={label} onChange={(e) => setLabel(e.target.value)} />
+        <Button disabled={create.isPending || !label.trim()} onClick={() => create.mutate()}>
           {create.isPending ? "Saving… (a few minutes)" : "Take backup now"}
         </Button>
       </div>
       <div className="space-y-2">
+        {list.isLoading && <p className="text-sm text-muted-foreground">Loading backups…</p>}
+        {list.isError && (
+          <p role="alert" className="text-sm text-destructive">
+            Could not load backups. Refresh the page to try again.
+          </p>
+        )}
+        {list.isSuccess && list.data.length === 0 && (
+          <p className="text-sm text-muted-foreground">No backups yet. Take one before making large changes.</p>
+        )}
         {(list.data ?? []).map((s) => (
           <div key={s.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-card p-4">
             <div>
@@ -95,14 +120,55 @@ function SystemBackups() {
               variant="destructive"
               disabled={restore.isPending}
               onClick={() => {
-                if (window.confirm(`Reset the WHOLE system to "${s.label}"? Everything entered after it will be lost.`)) restore.mutate(s);
+                setTyped("");
+                setPending(s);
               }}
             >
-              {restore.isPending ? "Restoring…" : "Restore to this point"}
+              {restore.isPending && restore.variables?.id === s.id ? "Restoring…" : "Restore to this point"}
             </Button>
           </div>
         ))}
       </div>
+
+      <AlertDialog open={!!pending} onOpenChange={(o) => { if (!o && !restore.isPending) setPending(null); }}>
+        <AlertDialogContent className="sm:max-w-md" data-no-confirm="true">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restore the whole system?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Everything will be put back to <span className="font-semibold text-foreground">“{pending?.label}”</span>
+              {pending ? ` (saved ${new Date(pending.created_at).toLocaleString()})` : ""}. All data entered after that
+              point will be permanently lost for every user.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="reset-confirm" className="text-sm">
+              Type <span className="font-mono font-semibold">{RESET_CONFIRM_WORD}</span> to confirm
+            </Label>
+            <Input
+              id="reset-confirm"
+              autoComplete="off"
+              autoCapitalize="characters"
+              spellCheck={false}
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+              placeholder={RESET_CONFIRM_WORD}
+              className="font-mono"
+            />
+          </div>
+          <AlertDialogFooter className="gap-2 sm:gap-2">
+            <AlertDialogCancel className="mt-0" disabled={restore.isPending}>
+              Cancel
+            </AlertDialogCancel>
+            <Button
+              variant="destructive"
+              disabled={typed.trim() !== RESET_CONFIRM_WORD || restore.isPending || !pending}
+              onClick={() => pending && restore.mutate(pending)}
+            >
+              {restore.isPending ? "Restoring…" : "Restore system"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

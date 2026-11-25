@@ -32,16 +32,6 @@ type MissingContractDesignation = {
 type FollowUpRow = MissingContractDesignation & { due: string; days: number };
 const QUERY_KEY = ["contract-designation-follow-up"] as const;
 
-function readSnapshot(key: string): FollowUpRow[] | undefined {
-  if (typeof window === "undefined") return undefined;
-  try {
-    const raw = window.localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as FollowUpRow[]) : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
 function withAge(row: MissingContractDesignation): FollowUpRow {
   const source = row.missing_since.slice(0, 10);
   const start = new Date(`${source}T00:00:00`).getTime();
@@ -74,20 +64,28 @@ export function ContractDesignationFollowUp({
     queryKey: [...QUERY_KEY, fieldOfficer ? "mine" : "all"],
     staleTime: 60_000,
     refetchInterval: 120_000,
-    initialData: () => readSnapshot(cacheKey),
-    initialDataUpdatedAt: 0,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_missing_contract_designations" as never);
-      if (error) throw error;
-      const rows = ((data ?? []) as unknown as MissingContractDesignation[]).map(withAge);
+      // Page through every row: a single RPC call is capped at 1,000 rows,
+      // which made the dashboard show exactly "1000".
+      const all: MissingContractDesignation[] = [];
+      for (let from = 0; ; from += 1000) {
+        const { data, error } = await supabase
+          .rpc("get_missing_contract_designations" as never)
+          .range(from, from + 999);
+        if (error) throw error;
+        const page = (data ?? []) as unknown as MissingContractDesignation[];
+        all.push(...page);
+        if (page.length < 1000) break;
+      }
+      // Drop the old device-wide snapshot (it was not tied to the signed-in user).
       if (typeof window !== "undefined") {
         try {
-          window.localStorage.setItem(cacheKey, JSON.stringify(rows));
+          window.localStorage.removeItem(cacheKey);
         } catch {
-          /* optional cache */
+          /* ignore */
         }
       }
-      return rows;
+      return all.map(withAge);
     },
   });
 

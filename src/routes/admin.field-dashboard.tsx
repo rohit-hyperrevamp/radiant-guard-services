@@ -1,4 +1,6 @@
 import { useSecondaryPostings } from "@/lib/use-secondary-postings";
+import { istAddDays, istDate, pickSelfEmployee } from "@/lib/dashboard-base";
+import { fetchAllPages, fetchInChunks } from "@/lib/supabase-batch";
 import { AttendanceTodayCard } from "@/components/AttendanceTodayCard";
 import { distinctPresentPeople } from "@/lib/attendance-people-utils";
 import { TileNumber } from "@/components/TileNumber";
@@ -107,11 +109,9 @@ function dashboardChannelName(phone: string) {
   return `field-officer-units-${phone}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+/** India calendar date `days` ago (YYYY-MM-DD). */
 function isoDaysAgo(days: number) {
-  const d = new Date();
-  d.setDate(d.getDate() - days);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  return istAddDays(istDate(), -days);
 }
 
 type FoStats = {
@@ -236,12 +236,16 @@ function FieldOfficerDashboard() {
     initialData: () => readSnapshot<FoBase>(`fo-base:${phone}`) ?? undefined,
     initialDataUpdatedAt: 0,
     queryFn: async (): Promise<FoBase> => {
-      const { data: me } = await supabase
+      // Rehires can leave two live rows on one mobile — pick ours, never throw.
+      const { data: meRows } = await supabase
         .from("candidates")
-        .select("id,unit_id")
-        .eq("mobile", phone).neq("status", "inactive")
-        .maybeSingle();
-      const meRow = me as { id?: string; unit_id?: string | null } | null;
+        .select("id,unit_id,status,is_enabled,approved_at,created_at,updated_at")
+        .eq("mobile", phone)
+        .neq("status", "inactive")
+        .limit(10);
+      const meRow = pickSelfEmployee(
+        (meRows ?? []) as Array<{ id: string; unit_id: string | null; status: string | null }>,
+      );
       const meId = meRow?.id ?? null;
       const base: FoBase = {
         meId,
@@ -398,9 +402,17 @@ function FieldOfficerDashboard() {
       if (unitIds.length) teamFilters.push(`unit_id.in.(${unitIds.join(",")})`);
       if (extraGuardIds.length) teamFilters.push(`id.in.(${extraGuardIds.join(",")})`);
 
+      // Paged: a large team must not stop at PostgREST's 1,000-row cap.
       const guardList = teamFilters.length
-        ? (((
-            await supabase
+        ? await fetchAllPages<{
+            id: string;
+            full_name: string;
+            employee_code: string | null;
+            designation_id: string | null;
+            unit_id: string | null;
+            created_at: string | null;
+          }>((from, to) =>
+            supabase
               .from("candidates")
               .select(
                 "id,full_name,employee_code,designation_id,unit_id,role_key,status,is_enabled,created_at",
@@ -408,16 +420,11 @@ function FieldOfficerDashboard() {
               .in("role_key", ["guard", "security_guard"])
               .eq("status", "active")
               .eq("is_enabled", true)
-              .order("full_name", { ascending: true })
               .or(teamFilters.join(","))
-          ).data ?? []) as Array<{
-            id: string;
-            full_name: string;
-            employee_code: string | null;
-            designation_id: string | null;
-            unit_id: string | null;
-            created_at: string | null;
-          }>)
+              .order("full_name", { ascending: true })
+              .order("id", { ascending: true })
+              .range(from, to),
+          )
         : [];
 
       // Co-field-officers on my units — scoped by unit / branch / customer ids only.
@@ -540,13 +547,18 @@ function FieldOfficerDashboard() {
         presentYday = 0,
         totalYday = 0;
       if (guardIds.length) {
-        const { data: entries } = await supabase
-          .from("attendance_entries")
-          .select("candidate_id,code,entry_date,unit_id,ot_hours")
-          .in("entry_date", [today, yday])
-          .in("unit_id", unitIds)
-          .in("candidate_id", guardIds);
-        const marks = (entries ?? []) as Array<{ candidate_id: string; code: string; entry_date: string; ot_hours: number }>;
+        const marks = await fetchInChunks<{ candidate_id: string; code: string; entry_date: string; ot_hours: number }>(
+          guardIds,
+          (chunk, from, to) =>
+            supabase
+              .from("attendance_entries")
+              .select("id,candidate_id,code,entry_date,unit_id,ot_hours")
+              .in("entry_date", [today, yday])
+              .in("unit_id", unitIds)
+              .in("candidate_id", chunk)
+              .order("id")
+              .range(from, to),
+        );
         presentToday = distinctPresentPeople(marks.filter(e => e.entry_date === today), presentCodes);
         presentYday = distinctPresentPeople(marks.filter(e => e.entry_date === yday), presentCodes);
         totalToday = new Set(guardIds).size;
@@ -585,16 +597,24 @@ function FieldOfficerDashboard() {
       const demandsByUnit: Record<string, number> = {};
       const inventoryByUnit: Record<string, number> = {};
       try {
+        // inv_demands has no unit column: attribute each open demand to the
+        // requesting team member's unit.
         const teamIds = [meId, ...guardIds];
-        const orClauses = [`requested_by.in.(${teamIds.join(",")})`];
-        if (unitIds.length) orClauses.push(`unit_id.in.(${unitIds.join(",")})`);
-        const { data: demands } = await supabase
-          .from("inv_demands" as never)
-          .select("id,status,unit_id,requested_by")
-          .or(orClauses.join(","))
-          .in("status", ["pending", "approved", "partial", "open", "raised", "submitted"]);
-        for (const d of (demands ?? []) as Array<{ unit_id: string | null }>) {
-          const uid = d.unit_id ?? UNASSIGNED;
+        const demands = await fetchInChunks<{ requester_candidate_id: string | null }>(
+          teamIds,
+          (chunk, from, to) =>
+            supabase
+              .from("inv_demands" as never)
+              .select("id,status,requester_candidate_id")
+              .in("requester_candidate_id", chunk)
+              .in("status", ["draft", "submitted", "in_transit", "pending", "approved", "partial"])
+              .order("id")
+              .range(from, to),
+        );
+        for (const d of demands) {
+          const uid =
+            (d.requester_candidate_id && guardIdToUnit.get(d.requester_candidate_id)) ||
+            UNASSIGNED;
           demandsByUnit[uid] = (demandsByUnit[uid] ?? 0) + 1;
         }
       } catch {
@@ -769,8 +789,10 @@ function FieldOfficerDashboard() {
     : `${rehireQ.data?.completedCount ?? 0} completed`;
 
   const onbDelta = (data?.pendingOnboardingTotal ?? 0) - (data?.pendingOnboardingLastWeek ?? 0);
-  const totalListings = data?.guardsTotal ?? 0;
-  const totalItems = data?.myStockQty ?? 0;
+  // Until the counts arrive (or if they fail) show "—", never a false 0.
+  const statsReady = !!stats;
+  const totalListings: number | string = statsReady ? (data?.guardsTotal ?? 0) : "—";
+  const totalItems: number | string = statsReady ? (data?.myStockQty ?? 0) : "—";
 
   const taskSummary = useTaskSummary();
 
@@ -789,7 +811,11 @@ function FieldOfficerDashboard() {
           />
           <HeroStat
             label="Present"
-            value={`${data?.presentToday ?? 0} (${data?.attendanceRateToday ?? 0}%)`}
+            value={
+              statsReady
+                ? `${data?.presentToday ?? 0} (${data?.attendanceRateToday ?? 0}%)`
+                : "—"
+            }
             icon={UserCheck}
             tone="mint"
             to="/admin/attendance"
@@ -944,11 +970,7 @@ function FoPeopleInsights() {
 }
 
 function FieldSenseSummary({ candidateId }: { candidateId: string }) {
-  const todayStr = (() => {
-    const d = new Date();
-    const p = (n: number) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-  })();
+  const todayStr = istDate();
   const firstOfMonth = `${todayStr.slice(0, 8)}01`;
 
   const q = useQuery({
@@ -969,12 +991,17 @@ function FieldSenseSummary({ candidateId }: { candidateId: string }) {
             .eq("candidate_id", candidateId)
             .eq("punch_date", todayStr)
             .maybeSingle(),
-          supabase
-            .from("field_track_points" as never)
-            .select("lat,lng,recorded_at")
-            .eq("candidate_id", candidateId)
-            .eq("track_date", todayStr)
-            .order("recorded_at", { ascending: true }),
+          // A full day of GPS fixes runs past 1,000 rows; page so km isn't cut short.
+          fetchAllPages<{ lat: number; lng: number; recorded_at: string }>((from, to) =>
+            supabase
+              .from("field_track_points" as never)
+              .select("lat,lng,recorded_at")
+              .eq("candidate_id", candidateId)
+              .eq("track_date", todayStr)
+              .order("recorded_at", { ascending: true })
+              .order("id", { ascending: true })
+              .range(from, to),
+          ).then((data) => ({ data })),
           supabase
             .from("candidates" as never)
             .select("unit_id")

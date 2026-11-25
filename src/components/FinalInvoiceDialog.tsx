@@ -25,8 +25,9 @@ import { FINAL_INVOICE_QK, generateFinalInvoice } from "@/lib/final-invoice";
 import { fmtMoney } from "@/lib/contract-finance";
 import { logActivity } from "@/lib/activity-log";
 import { loadPeriodGstOptions } from "@/lib/contract-gst";
-import { finalInvoiceTax } from "@/lib/gst-tax";
-import { loadGstBillingBranches, normalizeState, resolveGstBillingBranch } from "@/lib/gst-billing";
+import { finalInvoiceGrandTotal, finalInvoiceTax, invoiceCompanyState, istDateISO, isIntraStateSupply } from "@/lib/gst-tax";
+import { loadGstBillingBranches, resolveGstBillingBranch } from "@/lib/gst-billing";
+import { useOrgSettings } from "@/lib/org-settings";
 
 // ---------------------------------------------------------------------------
 // Generate final invoice — the only place an invoice number is consumed.
@@ -75,13 +76,15 @@ export function FinalInvoiceDialog({
   onDone?: () => void;
 }) {
   const qc = useQueryClient();
-  const [invoiceDate, setInvoiceDate] = useState(() => new Date().toISOString().slice(0, 10));
+  // Default to today's date in India: the UTC date is yesterday before 05:30 IST.
+  const [invoiceDate, setInvoiceDate] = useState(() => istDateISO());
+  const orgQ = useOrgSettings();
   const [tokens, setTokens] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (open) {
-      setInvoiceDate(new Date().toISOString().slice(0, 10));
+      setInvoiceDate(istDateISO());
       setTokens({});
     }
   }, [open]);
@@ -98,6 +101,8 @@ export function FinalInvoiceDialog({
 
   const resolveSeries = (state: string | null) => {
     const list = (seriesQ.data ?? []).filter((s) => s.enabled);
+    // NOTE (review I3): an unconfigured state silently falls back to the MH series here
+    // and in the numbering SQL; left unchanged pending a decision.
     return list.find((s) => norm(s.state_name) === norm(state)) ?? list.find((s) => s.state_code === "MH") ?? null;
   };
 
@@ -140,8 +145,9 @@ export function FinalInvoiceDialog({
         const series = resolveSeries(g.billingState);
         if (!series) throw new Error(`No invoice number series set up for ${g.billingState ?? "this state"}`);
         const taxable = Math.round(g.taxableValue * 100) / 100;
-        const supplier = resolveGstBillingBranch(gstBranches, g.billingState);
-        const intraState = normalizeState(g.billingState) === normalizeState(supplier?.stateName ?? "Maharashtra");
+        // Same supplier-state rule as the invoice detail page (branch, else org_settings.company_state).
+        const supplier = resolveGstBillingBranch(gstBranches, g.billingState, orgQ.data ?? null);
+        const intraState = isIntraStateSupply(g.billingState, invoiceCompanyState(supplier?.stateName, orgQ.data?.company_state));
         const tax = finalInvoiceTax(g.targets.map((t) => ({ taxableValue: t.taxableValue, gstOption: gstOptions.get(t.unitId) })), intraState);
         const result = await generateFinalInvoice({
           unitIds: g.targets.map((t) => t.unitId),
@@ -154,7 +160,8 @@ export function FinalInvoiceDialog({
           partyName: g.customerName,
           taxableValue: taxable,
           taxTotal: tax,
-          totalValue: Math.round((taxable + tax) * 100) / 100,
+          // Rounded to the rupee exactly as the printed invoice's grand total.
+          totalValue: finalInvoiceGrandTotal(taxable, tax),
           partKey: g.partKey,
           partLabel: g.partLabel,
         });
@@ -290,7 +297,7 @@ export function FinalInvoiceDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
             Cancel
           </Button>
-          <Button onClick={() => void submit()} disabled={busy || mixedStates || groups.length === 0 || seriesQ.isLoading}>
+          <Button onClick={() => void submit()} disabled={busy || mixedStates || groups.length === 0 || seriesQ.isLoading || orgQ.isLoading}>
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileCheck2 className="h-4 w-4" />}
             {busy ? "Generating…" : `Generate ${groups.length > 1 ? `${groups.length} invoices` : "invoice"}`}
           </Button>

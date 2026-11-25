@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllPages } from "@/lib/supabase-batch";
+import { istAddDays, istDate } from "@/lib/dashboard-base";
 
 export function currentActiveContract(row: { status: string; end_date: string | null }, today: string) {
   return row.status === "active" && (!row.end_date || row.end_date >= today);
@@ -30,14 +31,15 @@ export async function fetchDashboardMasterCounts(scope?: Set<string>) {
     eligible.sort((a, b) => Number(b.is_enabled) - Number(a.is_enabled) || number(b.employee_code) - number(a.employee_code) || (b.approved_at || b.created_at || b.updated_at || "").localeCompare(a.approved_at || a.created_at || a.updated_at || "") || b.id.localeCompare(a.id));
     return eligible.slice(0, 1);
   }).filter(p => p.is_enabled && !pending.has(p.id) && (!scope || (!!p.unit_id && scope.has(p.unit_id))));
-  const today = new Date().toISOString().slice(0, 10);
-  const horizon = new Date(); horizon.setDate(horizon.getDate() + 60);
+  // India calendar day: a UTC "today" kept expired contracts active until 05:30 IST.
+  const today = istDate();
+  const horizon = istAddDays(today, 60);
   const activeContracts = contracts.filter(c => (!c.unit_id || activeIds.has(c.unit_id)) && (!scope || (!!c.unit_id && scope.has(c.unit_id))) && currentActiveContract(c, today));
   return {
     orgs: customers.filter(c => !scope || scopedCustomers.has(c.id)).length,
     units: visibleUnits.length,
     employees: employees.length,
     contractsActive: activeContracts.length,
-    contractsExpiring: activeContracts.filter(c => c.end_date && c.end_date <= horizon.toISOString().slice(0, 10)).sort((a, b) => (a.end_date ?? "").localeCompare(b.end_date ?? "")).map(c => ({ ...c, unit_id: c.unit_id ?? "", end_date: c.end_date ?? "" })),
+    contractsExpiring: activeContracts.filter(c => c.end_date && c.end_date <= horizon).sort((a, b) => (a.end_date ?? "").localeCompare(b.end_date ?? "")).map(c => ({ ...c, unit_id: c.unit_id ?? "", end_date: c.end_date ?? "" })),
   };
 }

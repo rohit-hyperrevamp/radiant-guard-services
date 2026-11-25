@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmProvider";
 import { toast } from "sonner";
+import { istDateOf, MAX_OPEN_SHIFT_HOURS } from "@/lib/self-attendance";
 import { parseDurationWords } from "@/lib/voice-duration";
 
 interface SpeechRecognitionLike {
@@ -99,6 +100,10 @@ import {
   forcePrimaryAttendanceMapping,
   looksLikeRelieverText,
   resolveSheetPersonForUnit,
+  addCoveredDates,
+  importMayChangePostings,
+  removeEntriesReplacedByImport,
+  type ImportedCell,
 } from "@/lib/attendance-sheet-people";
 import {
   fetchAttendanceVersions,
@@ -1499,7 +1504,17 @@ function MusterRollPage() {
     const desigByCand = new Map<string, string | null>(
       (employees ?? []).map((e) => [e.id, e.designation_id ?? null]),
     );
-    const today = new Date().toISOString().slice(0, 10);
+    // Punch-derived rows belong to the person's regular (non-reliever) line, with
+    // the same shift as their posting — the line upsertEntries would write.
+    const regularShiftOf = (candidateId: string, designationId: string | null) => {
+      const emp = (employees ?? []).find((e) => e.id === candidateId);
+      const lines = ((emp as { lines?: UnitLine[] } | undefined)?.lines ?? []) as UnitLine[];
+      const regular = lines.filter((l) => !l.is_reliever);
+      const match =
+        regular.find((l) => (l.designation_id ?? null) === (designationId ?? null)) ?? regular[0];
+      return Number(parseVariant(lineVariant(match?.shift_hours ?? 0, false)).shift);
+    };
+    const today = istDateOf();
     const rows: EntryRow[] = [];
     for (const p of selfPunches) {
       if (!p.check_in_at) continue;
@@ -1508,10 +1523,17 @@ function MusterRollPage() {
       // treat that day as Absent. For today with no checkout yet, skip entirely
       // so the cell stays blank until they check out.
       if (!p.check_out_at) {
-        if (p.punch_date < today) {
+        // An open punch from yesterday may still be a night shift in progress
+        // (check-out allowed for MAX_OPEN_SHIFT_HOURS) — not Absent yet.
+        const stillOpen =
+          (Date.now() - new Date(p.check_in_at).getTime()) / 3_600_000 <= MAX_OPEN_SHIFT_HOURS;
+        if (p.punch_date < today && !stillOpen) {
+          const designationId = desigByCand.get(p.candidate_id) ?? null;
           rows.push({
             candidate_id: p.candidate_id,
-            designation_id: desigByCand.get(p.candidate_id) ?? null,
+            designation_id: designationId,
+            shift_hours: regularShiftOf(p.candidate_id, designationId),
+            is_reliever: false,
             entry_date: p.punch_date,
             code: "A",
             ot_hours: 0,
@@ -1528,6 +1550,8 @@ function MusterRollPage() {
       rows.push({
         candidate_id: p.candidate_id,
         designation_id: designationId,
+        shift_hours: regularShiftOf(p.candidate_id, designationId),
+        is_reliever: false,
         entry_date: p.punch_date,
         code,
         ot_hours: otDays,
@@ -1547,20 +1571,29 @@ function MusterRollPage() {
   }, [entries, derivedSelfEntries]);
 
   // Persist derived self-punch entries into attendance_entries so payroll
-  // picks them up. Only rows with NO stored entry are written; existing rows
-  // are never overwritten by punch derivation.
+  // picks them up. Only rows with NO stored entry on the same line (designation,
+  // shift, reliever flag) are written; existing rows are never overwritten.
+  // Never writes on a locked/approved/processed sheet or for users who cannot mark.
+  const punchPersistErrorShown = useRef(false);
+  const punchPersistAllowed =
+    editable && canMark && status !== "approved" && !payrollProcessed;
   useEffect(() => {
-    if (!unitId || !derivedSelfEntries.length) return;
-    const toPersist = derivedSelfEntries.filter((e) => {
-      const existing = entries.find(
-        (x) =>
-          x.candidate_id === e.candidate_id &&
-          x.entry_date === e.entry_date &&
-          (x.designation_id ?? null) === (e.designation_id ?? null) &&
-          !x.is_reliever,
-      );
-      return !existing;
-    });
+    if (!unitId || !derivedSelfEntries.length || !punchPersistAllowed) return;
+    const stored = new Set(entries.map((x) => `${entryRowKey(x)}|${x.entry_date}`));
+    // The punch DB trigger may already have written this day on a different
+    // shift line (e.g. shift 0 vs the posting's 8/12). Any non-reliever row for
+    // the same person + designation + date counts as "already recorded" —
+    // otherwise one check-in becomes two present days.
+    const dayKey = (x: { candidate_id: string; designation_id?: string | null; entry_date: string }) =>
+      `${x.candidate_id}|${x.designation_id ?? ""}|${x.entry_date}`;
+    const storedRegularDays = new Set(
+      entries
+        .filter((x) => !(x as { is_reliever?: boolean | null }).is_reliever)
+        .map(dayKey),
+    );
+    const toPersist = derivedSelfEntries.filter(
+      (e) => !stored.has(`${entryRowKey(e)}|${e.entry_date}`) && !storedRegularDays.has(dayKey(e)),
+    );
     if (!toPersist.length) return;
     let cancelled = false;
     (async () => {
@@ -1569,26 +1602,33 @@ function MusterRollPage() {
           unit_id: unitId,
           candidate_id: e.candidate_id,
           designation_id: e.designation_id,
+          shift_hours: e.shift_hours ?? 0,
+          is_reliever: false,
           entry_date: e.entry_date,
           code: e.code,
           ot_hours: e.ot_hours,
         }));
         const { error } = await supabase
           .from("attendance_entries")
-          .upsert(payload, {
+          .upsert(payload as never, {
             onConflict: "unit_id,candidate_id,designation_id,shift_hours,is_reliever,entry_date",
+            ignoreDuplicates: true,
           });
         if (error) throw error;
         if (!cancelled) queryClient.invalidateQueries({ queryKey: entriesQK });
-      } catch {
-        // Silently ignore — the derived view still displays correctly.
+      } catch (e) {
+        // The derived view still displays; tell the user once that it was not saved.
+        if (!cancelled && !punchPersistErrorShown.current) {
+          punchPersistErrorShown.current = true;
+          toast.error(`Check-in attendance could not be saved: ${networkErrorMessage(e, "Failed to save")}`);
+        }
       }
     })();
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [unitId, derivedSelfEntries, entries]);
+  }, [unitId, derivedSelfEntries, entries, punchPersistAllowed]);
 
   // Extra (candidate, designation) rows the user added locally — persisted as soon as an entry is saved.
   const [extraRows, setExtraRows] = useState<Set<string>>(new Set());
@@ -2243,7 +2283,7 @@ function MusterRollPage() {
     candidate_id: string,
     designation_id: string | null,
     rows: Array<{ entry_date: string; code: string; ot_hours: number }>,
-    line?: { variant?: string; reliever?: boolean },
+    line?: { variant?: string; reliever?: boolean; written?: ImportedCell[] },
   ) => {
     // Which line of this person the rows belong to. Without an explicit
     // variant, use the person's matching posting at this unit.
@@ -2404,6 +2444,17 @@ function MusterRollPage() {
       if (error) throw error;
       return data;
     });
+    // Imports collect exactly which line cells were written, so replacement
+    // removes only stale lines on the dates the file covered.
+    line?.written?.push(
+      ...payload.map((r) => ({
+        candidate_id: r.candidate_id,
+        designation_id: r.designation_id,
+        shift_hours: r.shift_hours,
+        is_reliever: r.is_reliever,
+        entry_date: r.entry_date,
+      })),
+    );
     const savedByDate = new Map((savedRows ?? []).map((row) => [row.entry_date, row]));
     const mismatched = capped.filter((row) => {
       const saved = savedByDate.get(row.entry_date);
@@ -2422,6 +2473,9 @@ function MusterRollPage() {
     }
     return capped.length;
   };
+
+  // Importing a past month must never move a guard's current postings/home unit.
+  const importChangesPostings = importMayChangePostings(periodEnd, istDateOf());
 
   const rowsForAttendanceRole = (
     rows: Array<{ entry_date: string; code: string; ot_hours: number }>,
@@ -2872,7 +2926,7 @@ function MusterRollPage() {
   const importSheetPeopleWithoutRoster = async (
     sheetImage: string,
     onlyNames?: string[],
-  ): Promise<{ cells: number; created: number; mapped: number; people: number }> => {
+  ): Promise<{ cells: number; created: number; mapped: number; people: number; unmatched: string[] }> => {
     const canonicalCode = new Map<string, string>();
     for (const c of codes) canonicalCode.set(c.code.toUpperCase(), c.code);
     const validDates = new Set(periodCells.map((c) => c.date));
@@ -2895,13 +2949,17 @@ function MusterRollPage() {
     let created = 0;
     let mapped = 0;
     let people = 0;
+    const unmatched: string[] = [];
+    const written: ImportedCell[] = [];
+    const coveredDates = new Map<string, Set<string>>();
 
     for (const emp of result.employees) {
       if (wanted.length) {
+        // Exact (case/space-insensitive) name or code only — never substrings.
         const n = normalize(emp.name || "");
         const c = normalize(emp.employee_code || "");
         const hit = wanted.some(
-          (t) => (n && (t.includes(n) || n.includes(t))) || (c && t.includes(c)),
+          (t) => (n && t === n) || (c && (t === c || t === n + c || t === c + n)),
         );
         if (!hit) continue;
       }
@@ -2934,27 +2992,26 @@ function MusterRollPage() {
         },
         joiningDate: periodStart,
         createdBy,
+        allowPostingChanges: importChangesPostings,
+        onUnmatched: (reason) => unmatched.push(reason),
       });
-      if (!resolved) continue;
+      if (!resolved) {
+        if (emp.name && !unmatched.some((u) => u.startsWith(emp.name))) unmatched.push(emp.name);
+        continue;
+      }
       if (resolved.created) created += 1;
       else if (resolved.mapped) mapped += 1;
       people += 1;
 
-      // Sheet-authoritative for this person's period.
-      const { error: delError } = await supabase
-        .from("attendance_entries")
-        .delete()
-        .eq("unit_id", unitId)
-        .eq("candidate_id", resolved.candidateId)
-        .gte("entry_date", periodStart)
-        .lte("entry_date", periodEnd);
-      if (delError) throw delError;
+      // Sheet-authoritative only for the dates read for this person; stale
+      // lines on those dates are removed after every write has succeeded.
+      addCoveredDates(coveredDates, resolved.candidateId, rows.map((r) => r.entry_date));
       const writeRows = async () =>
         upsertEntries(
           resolved.candidateId,
           resolved.designationId,
           rowsForAttendanceRole(rows, resolved.isReliever),
-          { reliever: resolved.isReliever },
+          { reliever: resolved.isReliever, written },
         );
       try {
         await writeRows();
@@ -2962,7 +3019,7 @@ function MusterRollPage() {
         // A stale reliever link at this site makes the database reject normal
         // attendance. The sheet is authoritative: post the guard here and retry.
         const msg = networkErrorMessage(writeError, "");
-        if (!resolved.isReliever && /extra duty/i.test(msg)) {
+        if (!resolved.isReliever && importChangesPostings && /extra duty/i.test(msg)) {
           await forcePrimaryAttendanceMapping(
             resolved.candidateId,
             unitId,
@@ -2974,9 +3031,10 @@ function MusterRollPage() {
       cells += rows.length;
     }
 
+    await removeEntriesReplacedByImport({ unitId, periodStart, periodEnd, written, coveredDates });
     await queryClient.invalidateQueries({ queryKey: entriesQK });
     await queryClient.invalidateQueries({ queryKey: ["attendance-roster-v5", unitId] });
-    return { cells, created, mapped, people };
+    return { cells, created, mapped, people, unmatched };
   };
 
   const processAttendanceImage = async (imageDataUrl?: string): Promise<string | null> => {
@@ -3054,6 +3112,7 @@ function MusterRollPage() {
         toast.success(autoSummary);
         showVerify("photo", [
           ...(auto.created ? [{ title: `${auto.created} new employee${auto.created === 1 ? "" : "s"} created`, detail: "People on the sheet who were not in the system were added. Confirm the names and IDs." }] : []),
+          ...(auto.unmatched.length ? [{ title: `${auto.unmatched.length} row${auto.unmatched.length === 1 ? "" : "s"} not saved`, detail: `These rows matched no single employee and were left unchanged: ${nameList(auto.unmatched)}.` }] : []),
           { title: "Nobody on the sheet matched this site's roster", detail: "Check that this sheet belongs to this client and site before submitting." },
         ]);
         await endScanProgress({ summary: autoSummary }, startedAt);
@@ -3236,6 +3295,7 @@ function MusterRollPage() {
         toast.success(autoSummary);
         showVerify("photo", [
           ...(auto.created ? [{ title: `${auto.created} new employee${auto.created === 1 ? "" : "s"} created`, detail: "People on the sheet who were not in the system were added. Confirm the names and IDs." }] : []),
+          ...(auto.unmatched.length ? [{ title: `${auto.unmatched.length} row${auto.unmatched.length === 1 ? "" : "s"} not saved`, detail: `These rows matched no single employee and were left unchanged: ${nameList(auto.unmatched)}.` }] : []),
           { title: "Nobody on the sheet matched this site's roster", detail: "Check that this sheet belongs to this client and site before submitting." },
         ]);
         await endScanProgress({ summary: autoSummary }, startedAt);
@@ -3253,10 +3313,9 @@ function MusterRollPage() {
         Awaited<ReturnType<typeof ensureAttendanceUnitMapping>>
       >();
 
-      // Sheet-authoritative: for any candidate present in the uploaded sheet,
-      // wipe ALL prior entries for the period (across every designation),
-      // then re-write only what the sheet shows. Prevents phantom rows under
-      // a designation the sheet didn't include.
+      // Sheet-authoritative for the dates read confidently for each person:
+      // write first, then remove other lines on exactly those dates (phantom
+      // designations). Unread / uncertain dates keep their saved marks.
       const candidatesInSheet = new Set<string>();
       for (const pk of sheetPairKeys) {
         const mr = pairByKey.get(pk);
@@ -3277,26 +3336,22 @@ function MusterRollPage() {
               unitId,
               mr.designationId,
               mr.reliever === true,
+              importChangesPostings,
             );
             mappingByPair.set(pk, mapping);
           }),
         );
-        const { error } = await supabase
-          .from("attendance_entries")
-          .delete()
-          .eq("unit_id", unitId)
-          .in("candidate_id", Array.from(candidatesInSheet))
-          .gte("entry_date", periodStart)
-          .lte("entry_date", periodEnd);
-        if (error) throw error;
       }
 
       confidentCount = Array.from(byPair.values()).reduce((sum, rows) => sum + rows.length, 0);
       uncertainCount = uncertainNext.size;
 
+      const ocrWritten: ImportedCell[] = [];
+      const ocrCovered = new Map<string, Set<string>>();
       await Promise.all(
         Array.from(byPair.entries()).map(async ([pk, rows]) => {
           const mr = pairByKey.get(pk)!;
+          addCoveredDates(ocrCovered, mr.candidateId, rows.map((r) => r.entry_date));
           await upsertEntries(
             mr.candidateId,
             mr.designationId,
@@ -3304,10 +3359,17 @@ function MusterRollPage() {
               rows.map((r) => ({ entry_date: r.entry_date, code: r.code, ot_hours: r.ot_hours })),
               mappingByPair.get(pk)?.isReliever ?? false,
             ),
-            { reliever: mappingByPair.get(pk)?.isReliever ?? false },
+            { reliever: mappingByPair.get(pk)?.isReliever ?? false, written: ocrWritten },
           );
         }),
       );
+      await removeEntriesReplacedByImport({
+        unitId,
+        periodStart,
+        periodEnd,
+        written: ocrWritten,
+        coveredDates: ocrCovered,
+      });
       await queryClient.invalidateQueries({ queryKey: entriesQK });
       await queryClient.invalidateQueries({ queryKey: ["attendance-roster-v5", unitId] });
 
@@ -3320,7 +3382,13 @@ function MusterRollPage() {
       // Rows the reader could not match to anyone on the muster are resolved
       // from the sheet itself: match / create the person, map them to this unit
       // and save their attendance — never ask the user to map first.
-      let auto = { cells: 0, created: 0, mapped: 0, people: 0 };
+      let auto: { cells: number; created: number; mapped: number; people: number; unmatched: string[] } = {
+        cells: 0,
+        created: 0,
+        mapped: 0,
+        people: 0,
+        unmatched: [],
+      };
       if (result.unmatched_names.length) {
         auto = await importSheetPeopleWithoutRoster(sheetImage, result.unmatched_names);
       }
@@ -3337,6 +3405,7 @@ function MusterRollPage() {
           issues.push({ title: `Totals don't match for ${totalsMismatchPairs.size} row${totalsMismatchPairs.size === 1 ? "" : "s"}`, detail: `The day totals written on the sheet differ from the marks read: ${nameList(names)}.` });
         }
         if (stillUnmatched) issues.push({ title: `${stillUnmatched} name${stillUnmatched === 1 ? "" : "s"} not matched`, detail: `Could not tie these sheet rows to an employee: ${nameList(result.unmatched_names)}.` });
+        if (auto.unmatched.length) issues.push({ title: `${auto.unmatched.length} row${auto.unmatched.length === 1 ? "" : "s"} not saved`, detail: `These rows matched no single employee and were left unchanged: ${nameList(auto.unmatched)}.` });
         if (auto.created) issues.push({ title: `${auto.created} new employee${auto.created === 1 ? "" : "s"} created`, detail: "People on the sheet who were not in the system were added. Confirm they really work at this site." });
         if (blockedDesigNames.size) issues.push({ title: "Designations not on contract", detail: `Rows skipped for ${Array.from(blockedDesigNames).join(", ")}.` });
         if (result.notes?.trim()) issues.push({ title: "Reader note", detail: result.notes.trim() });
@@ -3451,12 +3520,25 @@ function MusterRollPage() {
         }
       }
       const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
-      const byName = new Map<string, (typeof musterRows)[number]>();
-      const byCode = new Map<string, (typeof musterRows)[number]>();
+      // Exact (case/space/punctuation-insensitive) matching only. Two people with
+      // the same name or code are ambiguous — never collapse them or take the first.
+      type MusterRow = (typeof musterRows)[number];
+      const byName = new Map<string, MusterRow[]>();
+      const byCode = new Map<string, MusterRow[]>();
+      const addTo = (m: Map<string, MusterRow[]>, k: string, mr: MusterRow) => {
+        if (!k) return;
+        m.set(k, [...(m.get(k) ?? []), mr]);
+      };
       for (const mr of primaryByCandidate.values()) {
-        byName.set(norm(mr.emp.full_name), mr);
-        if (mr.emp.employee_code) byCode.set(norm(String(mr.emp.employee_code)), mr);
+        addTo(byName, norm(mr.emp.full_name), mr);
+        if (mr.emp.employee_code) addTo(byCode, norm(String(mr.emp.employee_code)), mr);
       }
+      /** The one muster row for a cell value, "ambiguous" for several, undefined for none. */
+      const matchCell = (n: string): MusterRow | "ambiguous" | undefined => {
+        const hits = byCode.get(n) ?? byName.get(n);
+        if (!hits?.length) return undefined;
+        return hits.length === 1 ? hits[0] : "ambiguous";
+      };
 
       // Locate the Designation column on the header row so we can route each
       // row to a (candidate, designation) pair instead of always the primary.
@@ -3526,6 +3608,9 @@ function MusterRollPage() {
         }
       >();
       const unmatchedNames: string[] = [];
+      // Cells in an employee row that could not be read. Any of these stops the
+      // import before anything is written, and they are listed for the user.
+      const parseFailures: string[] = [];
       const designationsNotOnContract = new Set<string>();
       const candidatesInSheet = new Set<string>();
       let secondaryDesigRowCount = 0;
@@ -3543,7 +3628,7 @@ function MusterRollPage() {
         rows: Array<{ entry_date: string; code: string; ot_hours: number }>;
       }> = [];
 
-      const parseSheetRowCells = (row: Array<unknown>) => {
+      const parseSheetRowCells = (row: Array<unknown>, unparsed: string[] = []) => {
         const out: Array<{ entry_date: string; code: string; ot_hours: number }> = [];
         for (const h of headerDates) {
           if (h.date > todayStr) continue;
@@ -3552,14 +3637,20 @@ function MusterRollPage() {
           // Accept "P", "D ,1", "P ,0.5", "ED ,1", "W ,1" etc.
           const cell = String(raw).trim().toUpperCase();
           const m = cell.match(/^([A-Z]+|(?=,))(?:\s*,?\s*(\d+(?:\.\d+)?))?$/);
-          if (!m) continue;
+          if (!m) {
+            unparsed.push(`${h.date.slice(8, 10)}: "${String(raw).trim()}"`);
+            continue;
+          }
           // FPL muster shorthand: "D" / "ED" mean Duty / Extra-Duty — both are a
           // PRESENT day, with the trailing number being OT days for that date.
           // Re-map to canonical "P" so payroll counts them as present.
           let codeKey = m[1];
           if (codeKey === "D" || codeKey === "ED") codeKey = "P";
           const canonical = codeKey ? codeSet.get(codeKey) : "";
-          if (canonical == null) continue;
+          if (canonical == null) {
+            unparsed.push(`${h.date.slice(8, 10)}: "${String(raw).trim()}"`);
+            continue;
+          }
           const ot = m[2] ? Number(m[2]) : 0;
           out.push({
             entry_date: h.date,
@@ -3572,7 +3663,8 @@ function MusterRollPage() {
 
       aoa = mergeAttendanceHourRows(aoa, headerRowIdx, headerDates, (row) => {
         const mr = row.slice(0, 4).map((v) => norm(String(v ?? "")))
-          .map((key) => byCode.get(key) ?? byName.get(key)).find((match) => match != null);
+          .map((key) => matchCell(key))
+          .find((match): match is MusterRow => match != null && match !== "ambiguous");
         const designation = designationCol >= 0
           ? fuzzyDesigMatch(norm(String(row[designationCol] ?? "")), String(row[designationCol] ?? ""))
           : undefined;
@@ -3583,7 +3675,8 @@ function MusterRollPage() {
         const row = aoa[r] || [];
         if (!row.some((v) => v != null && String(v).trim() !== "")) continue;
 
-        let mr: (typeof musterRows)[number] | undefined;
+        let mr: MusterRow | undefined;
+        let ambiguous = false;
         let labelCell = "";
         for (let c = 0; c < Math.min(row.length, 6); c++) {
           const v = row[c];
@@ -3593,34 +3686,28 @@ function MusterRollPage() {
           if (!labelCell) labelCell = s;
           const n = norm(s);
           if (!n) continue;
-          if (byCode.has(n)) {
-            mr = byCode.get(n);
+          const hit = matchCell(n);
+          if (hit === "ambiguous") {
+            ambiguous = true;
             break;
           }
-          if (byName.has(n)) {
-            mr = byName.get(n);
+          if (hit) {
+            mr = hit;
             break;
           }
         }
-        if (!mr) {
-          const joined = norm(
-            row
-              .slice(0, 4)
-              .map((v) => (v == null ? "" : String(v)))
-              .join(" "),
-          );
-          if (joined) {
-            for (const [k, m] of byName.entries()) {
-              if (k && (joined.includes(k) || k.includes(joined))) {
-                mr = m;
-                break;
-              }
-            }
-          }
+        if (ambiguous) {
+          // Several people on this muster share that name / ID: never guess.
+          unmatchedNames.push(`${labelCell} (matches more than one employee)`);
+          continue;
         }
         if (!mr) {
           // Not on the muster yet — keep the row and resolve the person below.
-          const sheetRows = parseSheetRowCells(row);
+          const pendingUnparsed: string[] = [];
+          const sheetRows = parseSheetRowCells(row, pendingUnparsed);
+          if (sheetRows.length && pendingUnparsed.length) {
+            parseFailures.push(`${labelCell || `Row ${r + 1}`}: ${pendingUnparsed.join(", ")}`);
+          }
           const tokens = row
             .slice(0, 6)
             .map((v) => (v == null ? "" : String(v).trim()))
@@ -3685,7 +3772,11 @@ function MusterRollPage() {
           }
         }
 
-        const rows = parseSheetRowCells(row);
+        const rowUnparsed: string[] = [];
+        const rows = parseSheetRowCells(row, rowUnparsed);
+        if (rowUnparsed.length) {
+          parseFailures.push(`${mr.emp.full_name}: ${rowUnparsed.join(", ")}`);
+        }
         if (rows.length) {
           const key = `${mr.candidateId}|${targetDesignationId ?? ""}`;
           const bucket = byPair.get(key);
@@ -3720,6 +3811,17 @@ function MusterRollPage() {
       }> = [];
       let autoCreated = 0;
       let autoMapped = 0;
+      if (parseFailures.length) {
+        showVerify("file", [
+          {
+            title: `${parseFailures.length} row${parseFailures.length === 1 ? "" : "s"} with unreadable cells`,
+            detail: `Nothing was imported. Fix these cells (day: value) and upload again — ${parseFailures.slice(0, 20).join("; ")}${parseFailures.length > 20 ? `; and ${parseFailures.length - 20} more` : ""}.`,
+          },
+        ]);
+        throw new Error(
+          `${parseFailures.length} row${parseFailures.length === 1 ? " has" : "s have"} cells that could not be read. Existing attendance was not changed.`,
+        );
+      }
       if (pendingPeople.length) {
         const { data: authUser } = await supabase.auth.getUser();
         const createdBy = authUser.user?.id ?? null;
@@ -3737,9 +3839,13 @@ function MusterRollPage() {
               },
               joiningDate: periodStart,
               createdBy,
+              allowPostingChanges: importChangesPostings,
+              onUnmatched: (reason) => unmatchedNames.push(reason),
             });
             if (!resolved) {
-              if (person.label) unmatchedNames.push(person.label);
+              if (person.label && !unmatchedNames.some((u) => u.startsWith(person.label))) {
+                unmatchedNames.push(person.label);
+              }
               continue;
             }
             if (resolved.created) autoCreated += 1;
@@ -3769,21 +3875,14 @@ function MusterRollPage() {
         throw new Error("No valid employee attendance rows were read. Existing attendance was not replaced.");
       }
 
-      // Sheet-authoritative: wipe every prior entry in this period for any
-      // candidate present in the uploaded sheet (across all designations),
-      // then write only what the sheet shows.
-      let clearedStale = 0;
-      if (candidatesInSheet.size) {
-        const { error, count } = await supabase
-          .from("attendance_entries")
-          .delete({ count: "exact" })
-          .eq("unit_id", unitId)
-          .in("candidate_id", Array.from(candidatesInSheet))
-          .gte("entry_date", periodStart)
-          .lte("entry_date", periodEnd);
-        if (error) throw error;
-        clearedStale = count ?? 0;
-      }
+      // Sheet-authoritative only for the date columns this file contains, for
+      // each person in it. Write everything first; only then remove the other
+      // saved lines on those dates, so a failed write never loses attendance and
+      // days missing from a partial file are left alone.
+      const fileDates = headerDates.map((h) => h.date).filter((d) => d <= todayStr);
+      const xlsxCovered = new Map<string, Set<string>>();
+      for (const cid of candidatesInSheet) addCoveredDates(xlsxCovered, cid, fileDates);
+      const xlsxWritten: ImportedCell[] = [];
 
       for (const { mr, rows } of byPair.values()) {
         const mapping = await ensureAttendanceUnitMapping(
@@ -3791,12 +3890,13 @@ function MusterRollPage() {
           unitId,
           mr.designationId,
           mr.reliever === true,
+          importChangesPostings,
         );
         await upsertEntries(
           mr.candidateId,
           mr.designationId,
           rowsForAttendanceRole(rows, mapping.isReliever),
-          { reliever: mapping.isReliever },
+          { reliever: mapping.isReliever, written: xlsxWritten },
         );
       }
       for (const pair of autoPairs) {
@@ -3804,9 +3904,16 @@ function MusterRollPage() {
           pair.candidateId,
           pair.designationId,
           rowsForAttendanceRole(pair.rows, pair.isReliever),
-          { reliever: pair.isReliever },
+          { reliever: pair.isReliever, written: xlsxWritten },
         );
       }
+      const clearedStale = await removeEntriesReplacedByImport({
+        unitId,
+        periodStart,
+        periodEnd,
+        written: xlsxWritten,
+        coveredDates: xlsxCovered,
+      });
       await queryClient.invalidateQueries({ queryKey: entriesQK });
       // Mapping and designation changes must appear on the muster immediately.
       await queryClient.invalidateQueries({ queryKey: ["attendance-roster-v5", unitId] });
@@ -3838,7 +3945,7 @@ function MusterRollPage() {
         if (unmatchedNames.length) issues.push({ title: `${unmatchedNames.length} name${unmatchedNames.length === 1 ? "" : "s"} not matched`, detail: `Could not tie these rows to an employee: ${nameList(unmatchedNames)}.` });
         if (autoCreated) issues.push({ title: `${autoCreated} new employee${autoCreated === 1 ? "" : "s"} created`, detail: "People in the file who were not in the system were added. Confirm they really work at this site." });
         if (designationsNotOnContract.size) issues.push({ title: "Designations not on contract", detail: `${Array.from(designationsNotOnContract).join(", ")} were saved under each person's primary designation.` });
-        if (clearedStale) issues.push({ title: `${clearedStale} earlier entr${clearedStale === 1 ? "y" : "ies"} cleared`, detail: "Marks that were already saved but are not in this file were removed." });
+        if (clearedStale) issues.push({ title: `${clearedStale} earlier entr${clearedStale === 1 ? "y" : "ies"} cleared`, detail: "Marks saved on dates in this file that the file leaves blank (or under another line) were removed. Dates not in the file were left as they were." });
         if (filled === 0) issues.push({ title: "No attendance imported", detail: "No marks were read from the file. Check the file format and month." });
         showVerify("file", issues);
       }
@@ -4445,7 +4552,7 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
             className="h-10 min-w-0 rounded-xl px-3 text-sm shadow-sm"
           >
             <Upload className="mr-2 h-4 w-4 shrink-0" />
-            <span className="truncate">Upload Attendance</span>
+            <span className="truncate">Upload attendance</span>
           </Button>
           <AttendanceUploadsButton unitId={unitId} periodStart={periodStart} />
           <Button
@@ -4507,7 +4614,7 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
             className="h-10 shrink-0 rounded-xl"
           >
             <Plus className="mr-2 h-4 w-4 shrink-0" />
-            <span className="truncate">Add Employee</span>
+            <span className="truncate">Add employee</span>
           </Button>
           <Button
             variant="outline"
@@ -5591,7 +5698,7 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
                       </tr>,
                       <tr key={`${mr.key}-mobile-ed`} className="bg-muted/25">
                         <td className="sticky left-0 z-20 w-[176px] min-w-[176px] border-b border-r border-border bg-card px-3 py-1 text-left text-[9px] font-medium text-muted-foreground shadow-sm">
-                          Extra Duty
+                          Extra duty
                         </td>
                         {periodCells.map((cell) => {
                           const beforeDoj = Boolean(mr.emp.doj) && cell.date < mr.emp.doj;

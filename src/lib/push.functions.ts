@@ -7,6 +7,7 @@ import {
   sendNativePushToCurrentUserServer,
   sendNativePushForRecentNotifications,
 } from "./push-delivery.server";
+import { pushRecipientsForCaller } from "./push-permissions";
 
 export const getMyPushRegistrationStatus = createServerFn({ method: "GET" })
   .middleware([requirePushAuth])
@@ -66,10 +67,32 @@ export const sendNativePushToUsers = createServerFn({ method: "POST" })
       link: z.string().max(500).optional(),
     }).parse(data),
   )
-  .handler(async ({ context, data }) =>
-    sendNativePushForRecentNotifications(context.supabase, data.userIds, {
+  .handler(async ({ context, data }) => {
+    // Admins may push to anyone. Everyone else may only push the exact
+    // notification they themselves created for that person in the last hour,
+    // so a user cannot send arbitrary text to someone else's phone.
+    const { data: isAdmin } = await context.supabase.rpc("is_admin_user" as never);
+    let recipients = data.userIds;
+    if (isAdmin !== true) {
+      const { supabaseAdmin } = await import("./radiant-admin.server");
+      const { data: rows, error } = await supabaseAdmin
+        .from("notifications")
+        .select("user_id,title,message")
+        .in("user_id", data.userIds)
+        .eq("actor_id", context.userId)
+        .gte("created_at", new Date(Date.now() - 60 * 60 * 1000).toISOString())
+        .limit(500);
+      if (error) throw new Error("Could not verify the notification for this push.");
+      recipients = pushRecipientsForCaller(
+        (rows ?? []) as Array<{ user_id: string; title: string; message: string }>,
+        data.title,
+        data.message,
+      );
+      if (recipients.length === 0) return { sent: 0, total: 0, failures: [] };
+    }
+    return sendNativePushForRecentNotifications(context.supabase, recipients, {
       title: data.title,
       body: data.message,
       link: data.link,
-    }, { actorUserId: context.userId }),
-  );
+    }, { actorUserId: context.userId });
+  });

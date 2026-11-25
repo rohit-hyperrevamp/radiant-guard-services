@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { fetchInChunks } from "@/lib/supabase-batch";
-import { resolvePtAmount, type PincodeRangeLike, type PtSlabLike } from "@/lib/payroll-calc";
+import { resolvePtAmount, roundGrossRupees, type PincodeRangeLike, type PtSlabLike } from "@/lib/payroll-calc";
 
 /**
  * Professional Tax is one monthly slab per person. A guard who works at more
@@ -34,7 +34,9 @@ export function ptForSite(input: {
     state: input.state,
     pincode: input.pincode,
     gender: input.gender,
-    earnedGross: Math.max(0, input.siteGross + other.gross),
+    // Slabs are whole-rupee bands; read them on the gross rounded the same way
+    // the final gross is, so paise (₹10,000.40) never fall between two slabs.
+    earnedGross: roundGrossRupees(Math.max(0, input.siteGross + other.gross)),
     slabs: input.slabs,
     ranges: input.ranges,
   });
@@ -68,7 +70,9 @@ export async function fetchPtAllocations(
       .eq("period_year", y)
       .eq("period_month", m)
       .range(from, to) as never,
-  ).catch(() => [] as Row[]);
+  );
+  // No catch: a failed read must stop processing, not silently drop the
+  // recorded Pages split (which would charge full PT at a second site).
   for (const r of rows) {
     if (!out.has(r.candidate_id)) out.set(r.candidate_id, 0);
     if (r.unit_id === unitId) out.set(r.candidate_id, (out.get(r.candidate_id) ?? 0) + (Number(r.pt_amount) || 0));
@@ -161,7 +165,9 @@ export async function fetchOtherSitePtTotals(
       .gte("payroll_runs.period_end", monthStart)
       .lte("payroll_runs.period_end", monthEnd)
       .range(from, to) as never,
-  ).catch(() => [] as Snap[]);
+  );
+  // No catch: hiding a failed read would look like "no PT charged elsewhere"
+  // and charge the full slab again at this site.
   // Latest version per run + person.
   const latest = new Map<string, Snap>();
   for (const s of snaps) {

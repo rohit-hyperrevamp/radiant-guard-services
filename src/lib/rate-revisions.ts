@@ -66,21 +66,21 @@ function blendArrays(parts: { arr: unknown; w: number }[]): Row[] {
   return order.map((k) => ({ ...base.get(k)!, amount: Math.round((amt.get(k) ?? 0) * 100) / 100 }));
 }
 
-/** Approved/expired revisions for many resource lines (chunked: long id lists exceed URL limits). */
+/**
+ * Approved/expired revisions for many resource lines (chunked: long id lists exceed URL limits).
+ * A failed read throws: silently returning "no revisions" would price every line
+ * at its base rate with no warning.
+ */
 export async function fetchRevisions(ids: string[]): Promise<Rev[] | null> {
-  try {
-    return await fetchInChunks<Rev>(ids, (chunk, a, b) =>
-      supabase
-        .from("contract_rate_revisions" as never)
-        .select("*")
-        .in("resource_id", chunk)
-        .in("status", ["approved", "expired"])
-        .order("id")
-        .range(a, b),
-    );
-  } catch {
-    return null;
-  }
+  return await fetchInChunks<Rev>(ids, (chunk, a, b) =>
+    supabase
+      .from("contract_rate_revisions" as never)
+      .select("*")
+      .in("resource_id", chunk)
+      .in("status", ["approved", "expired"])
+      .order("id")
+      .range(a, b),
+  );
 }
 
 export async function applyRateRevisionsForPeriod<T extends Row>(

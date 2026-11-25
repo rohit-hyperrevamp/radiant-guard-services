@@ -223,11 +223,11 @@ function EmployeeAttendanceLookupPage() {
         const byDay = new Map<number, EntryRow>();
         for (const r of rows) byDay.set(Number(r.entry_date.slice(8, 10)), r);
         let presentDays = 0;
-        let edHours = 0;
+        let edDays = 0; // ot_hours stores Extra Duty DAYS
         for (const r of rows) {
           const meta = codeMap.get(r.code);
           if (meta?.counts_as_present) presentDays += Number(meta.day_value ?? 1);
-          edHours += Number(r.ot_hours ?? 0);
+          edDays += Number(r.ot_hours ?? 0);
         }
         return {
           id,
@@ -238,7 +238,7 @@ function EmployeeAttendanceLookupPage() {
           isReliever: !!link?.is_reliever,
           byDay,
           presentDays,
-          edHours,
+          edDays,
           marked: rows.length,
         };
 
@@ -251,7 +251,7 @@ function EmployeeAttendanceLookupPage() {
       unitBlocks.reduce(
         (acc, b) => ({
           present: acc.present + b.presentDays,
-          ed: acc.ed + b.edHours,
+          ed: acc.ed + b.edDays,
           marked: acc.marked + b.marked,
         }),
         { present: 0, ed: 0, marked: 0 },
@@ -381,7 +381,7 @@ function EmployeeAttendanceLookupPage() {
             </div>
             <div className="scrollbar-hide flex max-w-full items-center gap-1.5 overflow-x-auto pb-0.5">
               <Stat label="Present days" value={totals.present.toFixed(2).replace(/\.00$/, "")} />
-              <Stat label="Extra duty hrs" value={totals.ed.toFixed(2).replace(/\.00$/, "")} />
+              <Stat label="Extra duty days" value={totals.ed.toFixed(2).replace(/\.00$/, "")} />
               <Stat label="Clients" value={String(unitBlocks.length)} />
             </div>
           </div>
@@ -421,7 +421,7 @@ function EmployeeAttendanceLookupPage() {
                     <p className="text-[11px] text-muted-foreground">
                       {block.code} · {block.designation || "Designation not set"} ·{" "}
                       {block.presentDays.toFixed(2).replace(/\.00$/, "")} present ·{" "}
-                      {block.edHours.toFixed(2).replace(/\.00$/, "")} ED hrs
+                      {block.edDays.toFixed(2).replace(/\.00$/, "")} ED days
                     </p>
 
                   </div>
@@ -448,12 +448,12 @@ function EmployeeAttendanceLookupPage() {
                                 ? { backgroundColor: `${meta.color}1f`, color: meta.color, borderColor: `${meta.color}55` }
                                 : undefined
                             }
-                            title={meta ? `${meta.label}${ed ? ` · ED ${ed}h` : ""}` : "Not marked"}
+                            title={meta ? `${meta.label}${ed ? ` · ED ${ed} day${ed === 1 ? "" : "s"}` : ""}` : "Not marked"}
                           >
                             {entry?.code || "·"}
                           </div>
                           <span className="text-[9px] font-semibold text-violet-600">
-                            {ed ? `${ed}h` : ""}
+                            {ed ? `+${ed}d` : ""}
                           </span>
                         </div>
                       );

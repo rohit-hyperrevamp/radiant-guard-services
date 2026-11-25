@@ -82,12 +82,11 @@ function WorkflowManagerPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("roles" as never)
-        .select("key,name,enabled")
+        // `roles` has no enabled flag live — every saved role is selectable.
+        .select("key,name")
         .order("name");
       if (error) throw error;
-      return ((data as unknown) as Array<{ key: string; name: string; enabled: boolean }>).filter(
-        (r) => r.enabled !== false,
-      );
+      return (data as unknown as Array<{ key: string; name: string }>) ?? [];
     },
   });
 

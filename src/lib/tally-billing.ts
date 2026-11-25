@@ -1,4 +1,5 @@
 import { writeXlsx } from "@/lib/csv-export";
+import { isIntraStateSupply } from "@/lib/gst-tax";
 
 // Shared Tally billing-file export. Used by the per-invoice export on the
 // invoice detail page and the combined multi-invoice export on the invoice
@@ -47,7 +48,13 @@ export type TallyBillingLine = {
   amount: number;
   /** Contracted monthly rate behind the line (for the item name). */
   monthly: number;
+  /** Item name override (configured extra charges print their own description). */
+  itemName?: string;
 };
+
+export type TallyExtraCharge = { description: string; amount: number };
+
+const r2 = (v: number) => Math.round(v * 100) / 100;
 
 const MONTH_ABBR = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
 
@@ -72,13 +79,29 @@ export function buildTallyVoucherRows(args: {
   serviceTypeName: string;
   lines: TallyBillingLine[];
   gstOption?: string | null;
+  /** The invoice's own CGST/SGST-vs-IGST decision; when omitted it is derived
+   *  exactly as the invoice page does (site billing_state vs company state, normalised). */
+  intraState?: boolean;
+  /** Enabled configured extra charges printed on the invoice (billed as their own lines). */
+  extraCharges?: TallyExtraCharge[];
+  /** Printed (rounded) grand total. When given, a "Round Off" additional ledger
+   *  on the last row brings the voucher total to exactly this amount. */
+  grandTotal?: number;
 }): Record<string, unknown>[] {
-  const { unit, companyState, periodStart, periodEnd, serviceTypeName, lines } = args;
+  const { unit, companyState, periodStart, periodEnd, serviceTypeName } = args;
+  const lines: TallyBillingLine[] = [
+    ...args.lines,
+    ...(args.extraCharges ?? [])
+      .filter((c) => (Number(c.amount) || 0) !== 0)
+      .map((c) => ({ qty: 1, rate: c.amount, amount: c.amount, monthly: 0, itemName: c.description })),
+  ];
   const COMPANY_STATE = companyState;
   const COMPANY_STATE_SHORT = companyState.slice(0, 4);
 
   const billingState = unit.billing_state || unit.customer?.billing_state || "";
-  const isIntraState = billingState.trim().toLowerCase() === COMPANY_STATE.toLowerCase();
+  // Same rule as the invoice detail page: the site's own billing_state, normalised
+  // ("Tamil Nadu" = "TamilNadu"), against the supplier state.
+  const isIntraState = args.intraState ?? isIntraStateSupply(unit.billing_state, COMPANY_STATE);
   const gstEnabled = args.gstOption !== "none";
   const gstRate = gstEnabled ? 18 : 0;
   const cgstRate = gstEnabled && isIntraState ? 9 : 0;
@@ -104,7 +127,7 @@ export function buildTallyVoucherRows(args: {
   const pincode = unit.billing_pincode || unit.customer?.billing_pincode || "";
   const country = unit.billing_country || unit.customer?.billing_country || "India";
 
-  return lines.map((line) => {
+  const rows = lines.map((line) => {
     const amt = Math.round(line.amount * 100) / 100;
     const cgstAmt = Math.round(amt * (cgstRate / 100) * 100) / 100;
     const sgstAmt = Math.round(amt * (sgstRate / 100) * 100) / 100;
@@ -135,7 +158,7 @@ export function buildTallyVoucherRows(args: {
       "Cost Center": COMPANY_STATE,
       "Cost Center Amt": "",
       "Sales Ledger": salesLedger,
-      "Item Name": `${serviceTypeName} @${line.monthly.toFixed(2)} Per Month`,
+      "Item Name": line.itemName || `${serviceTypeName} @${line.monthly.toFixed(2)} Per Month`,
       "Stock Group": "Primary",
       "Client": "Duty",
       "Maintain Batches": "Yes",
@@ -170,6 +193,20 @@ export function buildTallyVoucherRows(args: {
       "TALLYIMPORTSTATUS": "",
     } satisfies Record<string, unknown>;
   });
+  if (args.grandTotal != null && rows.length > 0) {
+    const voucherTotal = r2(rows.reduce((sum, row) => sum + (Number(row["Total"]) || 0), 0));
+    let roundOff = r2(args.grandTotal - voucherTotal);
+    // Never hide a real pricing difference inside round-off: beyond ₹1 fall back
+    // to plain rupee rounding of the voucher itself.
+    if (Math.abs(roundOff) > 1) roundOff = r2(Math.round(voucherTotal) - voucherTotal);
+    if (roundOff !== 0) {
+      const last = rows[rows.length - 1] as Record<string, unknown>;
+      last["Additional Ledger"] = "Round Off";
+      last["Amount"] = roundOff;
+      last["Total"] = r2((Number(last["Total"]) || 0) + roundOff);
+    }
+  }
+  return rows;
 }
 
 export async function writeTallyBillingXlsx(filename: string, rows: Record<string, unknown>[]) {

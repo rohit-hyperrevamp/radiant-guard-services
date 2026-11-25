@@ -1,5 +1,5 @@
-import { SUPER_ADMIN_OTP_PHONE } from "@/lib/otp-config";
 import { DEFAULT_WIDGET_ID } from "@/lib/otp-config.functions";
+import { superAdminPhone } from "@/lib/phone-session.server";
 import { WIDGET_TOKEN } from "@/lib/otp-widget";
 
 /** Widget ID from secrets (MSG91_WIDGET_ID) with the built-in default as fallback. */
@@ -11,19 +11,37 @@ function widgetId(): string {
 const MSG91_API = "https://control.msg91.com/api/v5";
 export type OtpMode = "sms" | "fixed";
 
-/** Named users approved to sign in with a fixed code (last 4 digits of their phone). */
-const FIXED_CODE_PHONES: Record<string, string> = {
-  "7517551288": "1288", // Ritesh (49551), VP Operations — approved by owner
-  "9175292300": "2300", // Prachi Bendge (32224) — approved by owner
-};
+/**
+ * Fixed sign-in codes come ONLY from server environment variables — never from
+ * source code (this repo was public and earlier codes are compromised):
+ *   SUPER_ADMIN_OTP   — fixed code for the Super Admin phone (optional; without
+ *                       it the Super Admin signs in by SMS like everyone else)
+ *   FIXED_OTP_CODES   — "9876543210:4821,9123456789:7302" for named users
+ *                       approved by the owner (optional)
+ * Codes must be exactly 4 digits and must NOT be derived from the phone number.
+ */
+export function parseFixedCodes(raw: string | undefined): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const pair of String(raw ?? "").split(",")) {
+    const [phone, code] = pair.split(":").map((s) => s.trim());
+    if (/^\d{10}$/.test(phone ?? "") && /^\d{4}$/.test(code ?? "") && code !== phone!.slice(-4)) {
+      out[phone!] = code!;
+    }
+  }
+  return out;
+}
 
 export function fixedCodeFor(phone: string): string | null {
-  return FIXED_CODE_PHONES[phone] ?? null;
+  if (phone === superAdminPhone()) {
+    const code = (process.env["SUPER_ADMIN_OTP"] ?? "").trim();
+    return /^\d{4}$/.test(code) ? code : null;
+  }
+  return parseFixedCodes(process.env["FIXED_OTP_CODES"])[phone] ?? null;
 }
 
 /** Refuse to send a code to a phone that belongs to no employee. */
 export async function assertRegisteredPhone(phone: string): Promise<void> {
-  if (phone === SUPER_ADMIN_OTP_PHONE) return;
+  if (phone === superAdminPhone()) return;
   const { supabaseAdmin } = await import("@/lib/radiant-admin.server");
   const { data, error } = await supabaseAdmin
     .from("candidates")
@@ -37,7 +55,7 @@ export async function assertRegisteredPhone(phone: string): Promise<void> {
 }
 
 export async function resolveOtpMode(phone: string): Promise<OtpMode> {
-  if (phone === SUPER_ADMIN_OTP_PHONE || FIXED_CODE_PHONES[phone]) return "fixed";
+  if (fixedCodeFor(phone)) return "fixed";
   try {
     const { supabaseAdmin } = await import("@/lib/radiant-admin.server");
     const { data, error } = await supabaseAdmin
@@ -124,7 +142,18 @@ export async function verifyMsg91PhoneOtp(phone: string, otp: string): Promise<v
   }
 }
 
-export async function verifyMsg91WidgetAccessToken(accessToken: string): Promise<void> {
+/**
+ * MSG91's verifyAccessToken success payload carries the verified mobile in
+ * `message` (e.g. "919876543210"). Sign-in is allowed only when that mobile is
+ * present AND equals the phone being signed in — otherwise a token verified
+ * for one number could be replayed to sign in as another.
+ */
+export function identifierMatches(message: string | undefined, phone: string): boolean {
+  const m = String(message ?? "").trim().match(/^\+?(\d{10,13})$/);
+  return !!m && m[1].slice(-10) === phone;
+}
+
+export async function verifyMsg91WidgetAccessToken(accessToken: string, phone: string): Promise<void> {
   const authKey = process.env["MSG91_AUTH_KEY"];
   if (!authKey) throw new Error("SMS service is not configured on this deployment.");
 
@@ -134,12 +163,12 @@ export async function verifyMsg91WidgetAccessToken(accessToken: string): Promise
     body: JSON.stringify({ authkey: authKey, "access-token": accessToken }),
   });
   const payload = (await response.json().catch(() => ({}))) as WidgetVerificationResponse;
-  if (
-    !response.ok ||
-    payload.type?.toLowerCase() === "error" ||
-    payload.status?.toLowerCase() === "error"
-  ) {
+  if (!response.ok || payload.type?.toLowerCase() !== "success") {
     throw new Error(msg91Error(payload.message, "OTP verification failed. Please try again."));
+  }
+  if (!identifierMatches(payload.message, phone)) {
+    console.error("[otp] widget token not verified for this number", JSON.stringify({ type: payload.type }));
+    throw new Error("OTP verification failed. Please try again.");
   }
 }
 

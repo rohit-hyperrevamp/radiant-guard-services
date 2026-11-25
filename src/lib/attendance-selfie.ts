@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { capturePhoto } from "@/lib/native-camera";
-import type { Geo } from "@/lib/self-attendance";
+import { istDateOf, type Geo } from "@/lib/self-attendance";
 
 export const SELFIE_BUCKET = "attendance-selfies";
 
@@ -93,7 +93,7 @@ export async function captureAttendanceSelfie(opts: {
   if (!photo) throw new Error("A face photo is required to mark attendance. Please take the photo.");
   const at = new Date();
   const blob = await stamp(photo, { name: opts.name, action: label, geo: opts.geo, place, at });
-  const d = at.toISOString().slice(0, 10);
+  const d = istDateOf(at); // folder by IST date, matching punch_date
   const path = `${opts.candidateId}/${d}/${opts.action}-${at.getTime()}.jpg`;
   const { error } = await supabase.storage.from(SELFIE_BUCKET).upload(path, blob, { contentType: "image/jpeg", upsert: false });
   if (error) throw new Error(`Photo upload failed: ${error.message}`);

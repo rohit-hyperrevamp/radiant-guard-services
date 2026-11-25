@@ -39,3 +39,23 @@ describe("contract GST opt-out", () => {
     ], { unitId: "site", periodStart: "2026-09-01", periodEnd: "2026-09-30" })).toBe("none");
   });
 });
+import { finalInvoiceGrandTotal, invoiceCompanyState, isIntraStateSupply, istDateISO } from "./gst-tax";
+
+describe("final invoice helpers (review I3/I4/I8)", () => {
+  it("stores the rupee-rounded grand total that the print shows", () => {
+    expect(finalInvoiceGrandTotal(10000.3, 1800.05)).toBe(11800);
+    expect(finalInvoiceGrandTotal(10000.45, 1800.08)).toBe(11801);
+  });
+  it("uses org_settings.company_state when no GST branch matches, not a hardcoded Maharashtra", () => {
+    expect(invoiceCompanyState(null, "Karnataka")).toBe("Karnataka");
+    expect(isIntraStateSupply("Karnataka", invoiceCompanyState(undefined, "Karnataka"))).toBe(true);
+    expect(isIntraStateSupply("Maharashtra", invoiceCompanyState(undefined, "Karnataka"))).toBe(false);
+    expect(invoiceCompanyState("Tamil Nadu", "Karnataka")).toBe("Tamil Nadu");
+  });
+  it("defaults the invoice date to the IST calendar date", () => {
+    // 1 April 00:30 IST = 31 March 19:00 UTC: the new financial year in India.
+    expect(istDateISO(new Date("2026-03-31T19:00:00Z"))).toBe("2026-04-01");
+    expect(istDateISO(new Date("2026-04-01T18:29:00Z"))).toBe("2026-04-01");
+    expect(istDateISO(new Date("2026-04-01T18:30:00Z"))).toBe("2026-04-02");
+  });
+});

@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
+import { isUniqueViolation, withFreshContractCode } from "@/lib/contract-codes";
 import {
   createNotification,
   currentUserId,
@@ -27,15 +28,6 @@ export type ApprovalContract = {
   contractCode: string;
   createdBy: string | null;
 };
-
-function nextContractCode(existing: string[]): string {
-  let max = 0;
-  for (const code of existing) {
-    const m = code?.match(/CON(\d+)/i);
-    if (m) max = Math.max(max, parseInt(m[1], 10));
-  }
-  return `CON${String(max + 1).padStart(5, "0")}`;
-}
 
 export function ContractApprovalDialog({
   open,
@@ -120,32 +112,25 @@ export function ContractApprovalDialog({
         }
       }
 
-      // Generate next contract code by inspecting existing CONxxxxx values.
-      const { data: codeRows, error: codeErr } = await supabase
-        .from("client_contracts" as never)
-        .select("contract_code")
-        .not("contract_code", "is", null);
-      if (codeErr) throw codeErr;
-      const existing = ((codeRows as unknown as Record<string, unknown>[]) ?? [])
-        .map((r) => String(r.contract_code ?? ""))
-        .filter(Boolean);
-      const newContractCode = nextContractCode(existing);
-
-      const { error } = await supabase
-        .from("client_contracts" as never)
-        .update({
-          approval_status: "approved",
-          approved_by: uid,
-          approved_at: nowIso,
-          signed_at: nowIso,
-          status: "active",
-          rejection_reason: "",
-          record_type: "client",
-          promoted_at: nowIso,
-          contract_code: newContractCode,
-        } as never)
-        .eq("id", contract!.id);
-      if (error) throw error;
+      // Next contract code from ALL existing codes (paged / DB function), retried if
+      // another approver takes the same code first.
+      const { code: newContractCode } = await withFreshContractCode(async (code) => {
+        const { error } = await supabase
+          .from("client_contracts" as never)
+          .update({
+            approval_status: "approved",
+            approved_by: uid,
+            approved_at: nowIso,
+            signed_at: nowIso,
+            status: "active",
+            rejection_reason: "",
+            record_type: "client",
+            promoted_at: nowIso,
+            contract_code: code,
+          } as never)
+          .eq("id", contract!.id);
+        return { error };
+      });
       void logActivity({
         module: "Client Contracts",
         action: "approve",
@@ -166,7 +151,14 @@ export function ContractApprovalDialog({
       onOpenChange(false);
     } catch (e) {
       console.error("[ContractApproval] approve failed", e);
-      toast.error(e instanceof Error ? e.message : "Approval failed");
+      const msg = (e as { message?: string } | null)?.message;
+      toast.error(
+        isUniqueViolation(e)
+          ? "Couldn't assign a contract number — another contract was approved at the same moment. Please try again."
+          : msg
+            ? `Approval failed: ${msg}`
+            : "Approval failed. Please try again.",
+      );
     } finally {
       setSaving(false);
     }

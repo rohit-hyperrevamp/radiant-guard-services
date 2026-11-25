@@ -125,10 +125,9 @@ type GroupItem = {
   children?: LeafItem[];
   activePrefixes?: string[];
   exact?: boolean;
+  /** Short explanation shown as a tooltip on the menu entry. */
+  hint?: string;
 };
-
-
-const controlCenterChildren: LeafItem[] = [];
 
 const salesChildren: LeafItem[] = [
   { to: "/admin/sales/dashboard", label: "Sales Dashboard", icon: LayoutDashboard, sub: "dashboard" },
@@ -152,13 +151,13 @@ const vehiclesChildren: LeafItem[] = [
   { to: "/admin/vehicles/insurances", label: "Insurance Manager", icon: ShieldCheck, sub: "insurance_manager" },
   { to: "/admin/vehicles/pucs", label: "PUC Manager", icon: Wind, sub: "puc_manager" },
   { to: "/admin/vehicles/service-manager", label: "Service Manager", icon: Wrench, sub: "service_manager" },
-  { to: "/admin/vehicles/expense-manager", label: "Expense Manager", icon: Fuel, sub: "expense_manager" },
+  { to: "/admin/vehicles/expense-manager", label: "Vehicle Expenses", icon: Fuel, sub: "expense_manager" },
 ];
 
 const assetsChildren: LeafItem[] = [
   { to: "/admin/assets/inventory", label: "Asset Inventory", icon: Home, sub: "asset_inventory" },
   { to: "/admin/assets/loan-manager", label: "Loan Manager", icon: Banknote, sub: "loan_manager" },
-  { to: "/admin/assets/expense-manager", label: "Expense Manager", icon: Receipt, sub: "expense_manager" },
+  { to: "/admin/assets/expense-manager", label: "Asset Expenses", icon: Receipt, sub: "expense_manager" },
 ];
 
 const inventoryChildren: LeafItem[] = [
@@ -182,20 +181,23 @@ const inventoryChildren: LeafItem[] = [
 
 
 
-const fieldSenseChildren: LeafItem[] = [
-  { to: "/admin/field-sense", label: "Dashboard", icon: LayoutDashboard, sub: "dashboard" },
+const fieldSenseToolChildren: LeafItem[] = [
   { to: "/admin/field-sense/team", label: "Day Patrol", icon: Users, sub: "day_patrol" },
-  { to: "/admin/field-sense/expenses", label: "Expense Manager", icon: Wallet, sub: "expense_manager" },
+  { to: "/admin/field-sense/expenses", label: "Field Expenses", icon: Wallet, sub: "expense_manager" },
   { to: "/admin/field-sense/reports", label: "Reports", icon: FileText, sub: "reports" },
   { to: "/admin/field-sense/attendance-rules", label: "Attendance Rules", icon: MapPin, sub: "day_patrol" },
 ];
 
+// One Radar (Field Sense) menu; only the landing dashboard differs for the
+// control-center roles, who use the main dashboard as their Radar home.
+const fieldSenseChildren: LeafItem[] = [
+  { to: "/admin/field-sense", label: "Dashboard", icon: LayoutDashboard, sub: "dashboard" },
+  ...fieldSenseToolChildren,
+];
+
 const controlCenterRadarChildren: LeafItem[] = [
   { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/admin/field-sense/team", label: "Day Patrol", icon: Users, sub: "day_patrol" },
-  { to: "/admin/field-sense/expenses", label: "Expense Manager", icon: Wallet, sub: "expense_manager" },
-  { to: "/admin/field-sense/reports", label: "Reports", icon: FileText, sub: "reports" },
-  { to: "/admin/field-sense/attendance-rules", label: "Attendance Rules", icon: MapPin, sub: "day_patrol" },
+  ...fieldSenseToolChildren,
 ];
 
 
@@ -465,8 +467,8 @@ function AdminLayout() {
   const groups: GroupItem[] = useMemo(
     () => [
       { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, to: dashboardHref, activePrefixes: ["/admin/dashboard", "/admin/field-dashboard"] },
-      { key: "org-manager", label: "Organizations", module: "organizations", sub: "organization_manager", icon: Building2, to: "/admin/customers/customer-manager", activePrefixes: ["/admin/customers/customer-manager"] },
-      { key: "unit-manager", label: "Clients", module: "organizations", sub: "unit_manager", icon: Warehouse, to: "/admin/customers/unit-manager", activePrefixes: ["/admin/customers/unit-manager"] },
+      { key: "org-manager", label: "Organizations", hint: "Parent companies you bill — each has one or more client sites", module: "organizations", sub: "organization_manager", icon: Building2, to: "/admin/customers/customer-manager", activePrefixes: ["/admin/customers/customer-manager"] },
+      { key: "unit-manager", label: "Clients", hint: "Client sites (units) where staff are deployed", module: "organizations", sub: "unit_manager", icon: Warehouse, to: "/admin/customers/unit-manager", activePrefixes: ["/admin/customers/unit-manager"] },
       { key: "contracts", label: "Contracts", module: "contracts", icon: Files, to: "/admin/contracts/client-contracts", activePrefixes: ["/admin/contracts"] },
       { key: "sales", label: "Sales & Marketing", module: "sales_marketing", icon: TrendingUp, children: salesChildren, activePrefixes: ["/admin/sales"] },
       { key: "recruitment", label: "Recruitment", module: "recruitment", icon: UserPlus, children: recruitmentChildren, activePrefixes: ["/admin/hr/recruitment"] },
@@ -486,7 +488,7 @@ function AdminLayout() {
       { key: "my-attendance", label: "My Attendance", icon: CalendarClock, to: "/admin/my-attendance", activePrefixes: ["/admin/my-attendance"] },
       { key: "training", label: "Training", icon: GraduationCap, to: "/admin/my-training", activePrefixes: ["/admin/my-training"] },
       { key: "compliance", label: "Compliance", icon: ShieldCheck, to: "/admin/compliance", activePrefixes: ["/admin/compliance"] },
-      { key: "control", label: "Control Center", module: "control_center", icon: SlidersHorizontal, to: "/admin/control-center", children: controlCenterChildren, activePrefixes: ["/admin/control-center", "/admin/customers/state-manager", "/admin/customers/branch-manager"] },
+      { key: "control", label: "Control Center", module: "control_center", icon: SlidersHorizontal, to: "/admin/control-center", activePrefixes: ["/admin/control-center", "/admin/customers/state-manager", "/admin/customers/branch-manager"] },
     ],
     [dashboardHref, isFieldOfficer],
   );
@@ -623,8 +625,7 @@ function AdminLayout() {
           return { ...g, children: kids };
         }
         if (!g.module || !g.children) return g;
-        // Control Center hosts the State/Branch managers — their subs live under the organizations module.
-        const subModule = g.key === "control" ? "organizations" : g.module!;
+        const subModule = g.module;
         const filtered = g.children.filter((c) => !c.sub || canSub(subModule, c.sub));
         return { ...g, children: filtered };
       });
@@ -1054,7 +1055,8 @@ function SidebarGroup({
       <Link
         to={group.to!}
         aria-label={collapsed ? group.label : undefined}
-        data-no-tip
+        data-tip={!collapsed && group.hint ? t(group.hint) : undefined}
+        data-no-tip={collapsed || !group.hint ? true : undefined}
         className={
           collapsed
             ? cn(collapsedIcon, "mx-auto", groupActive ? collapsedIconActive : collapsedIconIdle)
@@ -1079,6 +1081,7 @@ function SidebarGroup({
         <TooltipTrigger asChild>{link}</TooltipTrigger>
         <TooltipContent side="right" sideOffset={10} className="font-medium">
           {t(group.label)}
+          {group.hint && <span className="block text-xs font-normal opacity-75">{t(group.hint)}</span>}
         </TooltipContent>
       </Tooltip>
     );

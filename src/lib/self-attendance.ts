@@ -125,21 +125,57 @@ export async function verifyFaceForAttendance(reason: string): Promise<boolean> 
   return true;
 }
 
+const IST_OFFSET_MS = 330 * 60_000;
+
+/** Calendar date (YYYY-MM-DD) in India Standard Time, whatever the device clock zone. */
+export function istDateOf(at: Date = new Date()): string {
+  return new Date(at.getTime() + IST_OFFSET_MS).toISOString().slice(0, 10);
+}
+
+/** The IST calendar date before `iso` (YYYY-MM-DD). */
+export function previousIsoDate(iso: string): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
 function today() {
-  const d = new Date();
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  return istDateOf();
+}
+
+/** A night shift checked in yesterday stays open for check-out up to this long. */
+export const MAX_OPEN_SHIFT_HOURS = 16;
+
+/**
+ * Which punch the guard is acting on now: today's (IST) punch if there is one,
+ * otherwise yesterday's punch that was checked in but never checked out (night
+ * shift crossing midnight), as long as it is not older than MAX_OPEN_SHIFT_HOURS.
+ */
+export function pickActivePunch<T extends Pick<SelfPunch, "punch_date" | "check_in_at" | "check_out_at">>(
+  rows: T[],
+  now: Date = new Date(),
+): T | null {
+  const todayIso = istDateOf(now);
+  const todays = rows.find((r) => r.punch_date === todayIso);
+  if (todays) return todays;
+  const yesterdayIso = previousIsoDate(todayIso);
+  const open = rows.find((r) => r.punch_date === yesterdayIso && r.check_in_at && !r.check_out_at);
+  if (!open?.check_in_at) return null;
+  const ageHours = (now.getTime() - new Date(open.check_in_at).getTime()) / 3_600_000;
+  return ageHours >= 0 && ageHours <= MAX_OPEN_SHIFT_HOURS ? open : null;
 }
 
 export async function fetchTodayPunch(candidateId: string): Promise<SelfPunch | null> {
+  const todayIso = today();
   const { data, error } = await supabase
     .from("self_attendance_punches" as never)
     .select("*")
     .eq("candidate_id", candidateId)
-    .eq("punch_date", today())
-    .maybeSingle();
+    .gte("punch_date", previousIsoDate(todayIso))
+    .lte("punch_date", todayIso)
+    .order("punch_date", { ascending: false });
   if (error && error.code !== "PGRST116") throw error;
-  return (data as SelfPunch | null) ?? null;
+  return pickActivePunch((data ?? []) as SelfPunch[]);
 }
 
 export async function checkIn(candidateId: string, geo: Geo | null, faceVerified: boolean, unitId?: string | null, photo?: { path: string; place: string | null } | null): Promise<SelfPunch> {

@@ -61,6 +61,7 @@ import {
   processPayrollRun,
   processPayrollAmendment,
   fetchRunSnapshots,
+  bankFilePayments,
   asError,
   diffLines,
 
@@ -73,6 +74,10 @@ import { fetchOtherSitePtTotals, fetchOtherSitesWorked, fetchPtAllocations, othe
 import { downloadWageSlipPdf, type WageSlipData } from "@/lib/company-documents";
 import { DataPagination, usePagination } from "@/components/DataPagination";
 import { ActiveClientBoundary } from "@/components/ActiveClientBoundary";
+
+// Company debit account for the NEFT bank upload file.
+// TODO: move to organisation settings instead of source code.
+const BANK_FILE_DEBIT_ACCOUNT = "007405004982";
 
 const searchSchema = z.object({
   start: z.string(),
@@ -543,7 +548,8 @@ function PayrollUnitPage() {
   // the v1 snapshot — a later attendance amendment is settled as an
   // arrear/recovery in the NEXT payroll, so it must NOT rewrite this slip.
   // Bank file (NEFT upload) — available only once payroll is processed.
-  // Uses the first paid snapshot's net pay; skips no-bank / zero-salary rows.
+  // Uses the first paid snapshot's net pay exactly as posted; leaves out people
+  // on hold, people with no posted snapshot, and no-bank / zero-salary rows.
   const downloadBankFile = async () => {
     const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
     const MONTH = ["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -557,15 +563,14 @@ function PayrollUnitPage() {
     const header = ["Debit Ac No","Beneficiary Ac No","Beneficiary Name","Amt","Pay Mod (I=FT, N=NEFT, R=RTGS)","Date (DD-MMM-YYYY)","IFSC","Payable Location","Print Location","Bene Mobile No.","Bene Email ID","Bene add1","Bene add2","Bene add3","Bene add4","Add Details 1","Add Details 2","Add Details 3","Add Details 4","Add Details 5","Remarks"];
     const aoa: unknown[][] = [header];
     let skipped = 0;
-    for (const r of rows) {
-      const paid = snapshots.filter((s) => s.candidate_id === r.id).sort((a, b) => a.version - b.version)[0];
-      const net = Math.round(paid ? Number(paid.net_pay) || 0 : Number(r.wages?.netPay) || 0);
+    const bank = bankFilePayments(rows, snapshots, savedHolds);
+    for (const { row: r, net } of bank.payments) {
       const acc = (r.bankAccountNumber || "").trim();
       const ifsc = (r.bankIfsc || "").trim().toUpperCase();
       if (!acc || !ifsc || net <= 0) { skipped++; continue; }
-      aoa.push(["007405004982", acc, (r.bankAccountHolder || r.name || "").toUpperCase(), net, "N", payDate, ifsc, "", "", "", "", siteName, String(r.employeeCode ?? ""), "", "", "", "", "", "", "", `Salary ${monthLabel}`]);
+      aoa.push([BANK_FILE_DEBIT_ACCOUNT, acc, (r.bankAccountHolder || r.name || "").toUpperCase(), net, "N", payDate, ifsc, "", "", "", "", siteName, String(r.employeeCode ?? ""), "", "", "", "", "", "", "", `Salary ${monthLabel}`]);
     }
-    if (aoa.length === 1) { toast.error("No employees with bank details and salary to include."); return; }
+    if (aoa.length === 1) { toast.error("No posted, unheld employees with bank details and salary to include."); return; }
     const XLSX = await import("xlsx-js-style");
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     for (let i = 1; i < aoa.length; i++) {
@@ -579,8 +584,13 @@ function PayrollUnitPage() {
     XLSX.utils.book_append_sheet(wb, ws, `Bank Statement${MONTH[(em || 1) - 1]} - ${ey}`.slice(0, 31));
     const safe = (s: string) => s.replace(/[^A-Za-z0-9]+/g, "_").replace(/^_|_$/g, "");
     XLSX.writeFile(wb, `RADGUSPL_RADGUSPLUPLD_${fileDate}_${unit?.code ?? ""}_${safe(siteName)}_${monthLabel.toUpperCase().replace(" ", "_")}.xlsx`);
-    void logActivity({ module: "Payroll", action: "export", entityType: "bank_file", entityLabel: String(unit?.code ?? unitId), details: { employees: aoa.length - 1, skipped } });
-    toast.success(`Bank file downloaded — ${aoa.length - 1} employee(s)${skipped ? `, ${skipped} left out (no bank details or zero salary)` : ""}.`);
+    void logActivity({ module: "Payroll", action: "export", entityType: "bank_file", entityLabel: String(unit?.code ?? unitId), details: { employees: aoa.length - 1, skipped, held: bank.held, unposted: bank.unposted } });
+    const leftOut = [
+      skipped ? `${skipped} with no bank details or zero salary` : "",
+      bank.held ? `${bank.held} on hold` : "",
+      bank.unposted ? `${bank.unposted} not yet posted` : "",
+    ].filter(Boolean).join(", ");
+    toast.success(`Bank file downloaded — ${aoa.length - 1} employee(s)${leftOut ? `; left out: ${leftOut}` : ""}.`);
   };
 
   const buildSlip = (r: (typeof rows)[number]): WageSlipData => {
@@ -1422,7 +1432,7 @@ function PayrollUnitPage() {
           )}
           {sheet?.status === "approved" && (runStatus === "draft" || runStatus === "rejected") && !canApprove && canSubmitPayroll && (
             <Button size="sm" onClick={() => transitionRun.mutate({ status: "submitted" })} disabled={transitionRun.isPending || isLoading || hasPayrollExceptions}>
-              <Send className="mr-1.5 h-4 w-4" /> Submit for Approval
+              <Send className="mr-1.5 h-4 w-4" /> Submit for approval
             </Button>
           )}
           {sheet?.status === "approved" && runStatus !== "approved" && canApprove && (
@@ -1457,7 +1467,7 @@ function PayrollUnitPage() {
                 onClick={() => setProcessOpen(true)}
                 disabled={processRun.isPending || isLoading || hasPayrollExceptions || rows.length === 0}
               >
-                <Banknote className="mr-1.5 h-4 w-4" /> Process Payroll
+                <Banknote className="mr-1.5 h-4 w-4" /> Process payroll
               </Button>
             </>
           )}
@@ -1470,7 +1480,7 @@ function PayrollUnitPage() {
           )}
           {isProcessed && canProcess && (
             <Button size="sm" variant="outline" onClick={() => void downloadBankFile()}>
-              <Download className="mr-1.5 h-4 w-4" /> Bank File
+              <Download className="mr-1.5 h-4 w-4" /> Bank file
             </Button>
           )}
           {amendmentPending && canProcess && (
@@ -1611,7 +1621,7 @@ function PayrollUnitPage() {
             <ProcessLineItem label="Employees to be paid" value={String(rows.filter((r) => r.wages && !holdDraft.has(r.id)).length)} />
             <ProcessLineItem label="On hold (excluded)" value={String(holdDraft.size)} />
             <ProcessLineItem label="Deductions → Deductions ledger" value={fmtINR(totals.deductions)} />
-            <ProcessLineItem label="Employer contributions → Employer Contributions" value={fmtINR(totals.employerContrib)} />
+            <ProcessLineItem label="Employer contributions → Employer contributions ledger" value={fmtINR(totals.employerContrib)} />
             <ProcessLineItem label="Net payable" value={fmtINR(totals.net)} strong />
           </div>
           {holdDraft.size > 0 && (
@@ -1649,7 +1659,7 @@ function PayrollUnitPage() {
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="ghost" onClick={() => setRejectOpen(false)}>Cancel</Button>
             <Button variant="destructive" onClick={() => {
-              if (!rejectReason.trim()) { toast.error("Reason required"); return; }
+              if (!rejectReason.trim()) { toast.error("Enter a reason for rejection"); return; }
               transitionRun.mutate({ status: "rejected", reason: rejectReason.trim() }, {
                 onSuccess: () => { setRejectOpen(false); setRejectReason(""); },
               });
@@ -1824,7 +1834,17 @@ function PayrollUnitPage() {
                     </td>
                   ))}
                   <td className="px-4 py-3 text-left">{r.wages ? fmtINR(r.wages.totalDeductions) : "—"}</td>
-                  <td className="px-4 py-3 text-left font-semibold text-emerald-700">{r.wages ? fmtINR(r.wages.netPay) : "—"}</td>
+                  <td className="px-4 py-3 text-left font-semibold text-emerald-700">
+                    {r.wages ? fmtINR(r.wages.netPay) : "—"}
+                    {(r.wages?.shortfall ?? 0) > 0 && (
+                      <span
+                        className="ml-2 whitespace-nowrap rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 dark:bg-red-500/15 dark:text-red-300"
+                        title={`Deductions exceed gross by ${fmtINR(r.wages!.shortfall!)}. Net pay is shown as ₹0; the shortfall is not carried forward.`}
+                      >
+                        Short {fmtINR(r.wages!.shortfall!)}
+                      </span>
+                    )}
+                  </td>
                   {employerCols.map((g) => (
                     <td key={`${r.rowKey}-r-${g.header}`} className="px-4 py-3 text-left tabular-nums">
                       {r.wages ? fmtINR(sumAmounts(r.wages.employerContributions as NamedAmount[], g.names)) : "—"}

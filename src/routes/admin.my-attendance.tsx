@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { selfieUrl } from "@/lib/attendance-selfie";
 import { cn } from "@/lib/utils";
+import { pickSelfEmployee } from "@/lib/dashboard-base";
 
 type PunchShot = {
   path: string;
@@ -141,19 +142,27 @@ function MyAttendancePage() {
       const em = u.user?.email ?? "";
       const phone = em.match(/phone-(\d{10})@/)?.[1];
       if (!phone) return;
+      // Rehires can leave two live rows on one mobile — pick ours instead of
+      // letting `.maybeSingle()` fail and show an empty month.
       const { data: c } = await supabase
         .from("candidates")
-        .select("id,full_name,employee_code,role_key,unit_id,designation_id")
-        .eq("mobile", phone).neq("status", "inactive")
-        .maybeSingle();
-      const row = c as {
-        id?: string;
-        full_name?: string;
-        employee_code?: string;
-        role_key?: string;
-        unit_id?: string | null;
-        designation_id?: string | null;
-      } | null;
+        .select(
+          "id,full_name,employee_code,role_key,unit_id,designation_id,status,is_enabled,approved_at,created_at,updated_at",
+        )
+        .eq("mobile", phone)
+        .neq("status", "inactive")
+        .limit(10);
+      const row = pickSelfEmployee(
+        (c ?? []) as Array<{
+          id: string;
+          full_name?: string;
+          employee_code?: string;
+          role_key?: string;
+          unit_id?: string | null;
+          designation_id?: string | null;
+          status?: string | null;
+        }>,
+      );
       setMe({
         candidate_id: row?.id ?? null,
         name: row?.full_name ?? "",

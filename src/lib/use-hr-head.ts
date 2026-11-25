@@ -9,13 +9,24 @@ export function useIsHrHead(): boolean {
     queryFn: async () => {
       const { data: cid } = await supabase.rpc("current_user_candidate_id");
       if (!cid) return false;
+      // Look names up separately: the live schema has no candidates→designations
+      // foreign key, so an embedded select fails (PGRST200).
       const { data: row } = await supabase
         .from("candidates")
-        .select("role_key, designations:designation_id(name), departments:department_id(name)")
+        .select("role_key, designation_id, department_id")
         .eq("id", cid as string)
         .maybeSingle();
-      const name = String((row as any)?.designations?.name ?? "").toLowerCase().replace(/\s+/g, " ").trim();
-      const dept = String((row as any)?.departments?.name ?? "").toLowerCase().trim();
+      const r = (row ?? {}) as { designation_id?: string | null; department_id?: string | null };
+      const [desig, deptRow] = await Promise.all([
+        r.designation_id
+          ? supabase.from("designations").select("name").eq("id", r.designation_id).maybeSingle()
+          : Promise.resolve({ data: null }),
+        r.department_id
+          ? supabase.from("departments").select("name").eq("id", r.department_id).maybeSingle()
+          : Promise.resolve({ data: null }),
+      ]);
+      const name = String((desig.data as { name?: string } | null)?.name ?? "").toLowerCase().replace(/\s+/g, " ").trim();
+      const dept = String((deptRow.data as { name?: string } | null)?.name ?? "").toLowerCase().trim();
       if (name === "head" && dept === "hr") return true;
       return /\b(hr head|head (of )?hr|head - hr|head human resources?)\b/.test(name);
     },

@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { fmtINR } from "@/lib/payroll-calc";
 import { logActivity } from "@/lib/activity-log";
+import { confirmAction } from "@/components/ConfirmProvider";
 
 /**
  * Additional invoice charges (e.g. a Technical Allowance agreed with the
@@ -261,8 +262,23 @@ export function InvoiceExtraChargesCard({
             )}
             <div className="flex items-center justify-end gap-3 md:col-span-2">
               <span className="text-sm font-semibold tabular-nums">{fmtINR(c.amount)}</span>
-              <Switch checked={c.enabled} onCheckedChange={(v) => patch.mutate({ id: c.id, values: { enabled: v } })} />
-              <Button variant="ghost" size="icon" onClick={() => remove.mutate(c.id)}>
+              <Switch aria-label="Include charge on invoice" checked={c.enabled} onCheckedChange={(v) => patch.mutate({ id: c.id, values: { enabled: v } })} />
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={`Delete charge ${c.description || ""}`.trim()}
+                title="Delete charge"
+                disabled={remove.isPending}
+                onClick={async () => {
+                  const ok = await confirmAction({
+                    title: "Delete this charge?",
+                    description: `${c.description || "This charge"} (${fmtINR(c.amount)}) will be removed from the invoice. This cannot be undone.`,
+                    confirmText: "Delete",
+                    destructive: true,
+                  });
+                  if (ok) remove.mutate(c.id);
+                }}
+              >
                 <Trash2 className="h-4 w-4 text-destructive" />
               </Button>
             </div>
@@ -274,9 +290,9 @@ export function InvoiceExtraChargesCard({
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border/60 pt-4">
-        <span className="text-xs text-muted-foreground">New charge type:</span>
+        <span className="text-xs text-muted-foreground">New charge type</span>
         <Button size="sm" variant={draft.mode === "amount" ? "default" : "outline"} onClick={() => setDraft({ ...draft, mode: "amount" })}>
-          Qty × Rate
+          Qty × rate
         </Button>
         <Button size="sm" variant={draft.mode === "percent" ? "default" : "outline"} onClick={() => setDraft({ ...draft, mode: "percent" })}>
           Percentage

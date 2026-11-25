@@ -37,6 +37,8 @@ import { billingRatePerDay, misBillingLine, periodDateList, resolveBillingDiviso
 import { splitInvoiceDuties } from "@/lib/invoice-duty-rates";
 import { buildTallyVoucherRows, writeTallyBillingXlsx } from "@/lib/tally-billing";
 import { loadGstBillingBranches, normalizeState, resolveGstBillingBranch } from "@/lib/gst-billing";
+import { invoiceCompanyState, isIntraStateSupply } from "@/lib/gst-tax";
+import { roundDutyDays } from "@/lib/duty-days";
 import { useFinalInvoicesForUnits, unitPeriodKey } from "@/lib/final-invoice";
 import { FinalInvoiceDialog, type FinalInvoiceTarget } from "@/components/FinalInvoiceDialog";
 import { EXCLUDE, isSplit, loadOrgInvoiceSplit, type InvoiceItemKey, type InvoiceSplit } from "@/lib/invoice-split";
@@ -702,7 +704,8 @@ export function FinanceCharter({
         const customerId = String(unitRow.customer_id ?? "");
         const customer = customerById.get(customerId) ?? null;
         const billingState = String(unitRow.billing_state || customer?.billing_state || "");
-        const supplierBranch = resolveGstBillingBranch(gstBranches, billingState, org as never);
+        // Supplier branch and GST type exactly as the invoice page: the site's own billing_state.
+        const supplierBranch = resolveGstBillingBranch(gstBranches, unitRow.billing_state ?? null, org as never);
         const serviceTypeId = serviceTypeIdByUnit.get(unit.id);
         const book = books.get(label) ?? { rows: [], count: 0 };
         books.set(label, book);
@@ -713,7 +716,7 @@ export function FinanceCharter({
             gstin: gstinFor(customerId, billingState),
             customer,
           },
-          companyState: supplierBranch?.stateName ?? "Maharashtra",
+          companyState: invoiceCompanyState(supplierBranch?.stateName, (org as { company_state?: string | null } | null)?.company_state),
           periodStart: period.start,
           periodEnd: period.end,
           serviceTypeName: (serviceTypeId && serviceTypeNameById.get(serviceTypeId)) || "Security Guard",
@@ -829,7 +832,7 @@ export function FinanceCharter({
         const unitRow = unitById.get(u.id);
         if (!unitRow) continue;
         const supplierBranch = resolveGstBillingBranch(gstBranches, unitRow.billing_state, org as never);
-        const intraState = normalizeState(unitRow.billing_state) === normalizeState(supplierBranch?.stateName);
+        const intraState = isIntraStateSupply(unitRow.billing_state, invoiceCompanyState(supplierBranch?.stateName, (org as { company_state?: string | null } | null)?.company_state));
         const period = allPeriodsByUnit.get(u.id) ?? payrollPeriodForMonth(year, monthIdx);
         const periodDays = period.totalDays || 1;
         const periodDates = periodDateList(period.start, period.end);
@@ -862,6 +865,8 @@ export function FinanceCharter({
           const shift = line.shiftHours > 0 ? line.shiftHours : 8;
           const workingDays = misLine.workingDays;
           const otDuties = misLine.otDays;
+          // Extra Duty is counted in duties (days), not clock hours; the "*_ot_hours"
+          // keys are legacy MIS column keys and carry the same day figure.
           const otHours = otDuties;
           const otRate = line.extraDutyRate != null ? misLine.otRate : misLine.otRate / shift;
           const otAmount = misLine.otAmount;
@@ -890,8 +895,8 @@ export function FinanceCharter({
               designation: `${rate.designationName} @ (${rate.shiftHours})`, branch_name: branchName,
               state: unitRow.client_state || unitRow.billing_state || "", branch_sap_code: unitRow.branch_sap_code ?? "", zone: unitRow.zone ?? "",
               month_days: periodDays, month_rate: line.payrollDays, billing_rate: rate.billRate,
-              billing_rate_per_day: round(line.perDay), ot_rate: round(otRate), working_days: round(workingDays),
-              ot_duties: round(otDuties), ot_amount: round(otAmount),
+              billing_rate_per_day: round(line.perDay), ot_rate: round(otRate), working_days: roundDutyDays(workingDays),
+              ot_duties: roundDutyDays(otDuties), ot_amount: round(otAmount),
               working_days_billing_with_ot: round(regular + otBilling), total_regular_billing: round(regular),
               ot_billing: round(otBilling), total_billing: round(totalBilling),
 
@@ -908,18 +913,18 @@ export function FinanceCharter({
               sg_count: sgCountedUnits.has(u.id) ? 0 : (sgCountedUnits.add(u.id), contractedPosts || 1),
               regular_rate: rate.billRate,
               increment_rate: hasIncrement ? rate.billRate : 0,
-              regular_duties: hasIncrement ? 0 : round(workingDays),
-              increment_duties: hasIncrement ? round(workingDays) : 0,
-              regular_ot_hours: hasIncrement ? 0 : round(otHours),
-              increment_ot_hours: hasIncrement ? round(otHours) : 0,
+              regular_duties: hasIncrement ? 0 : roundDutyDays(workingDays),
+              increment_duties: hasIncrement ? roundDutyDays(workingDays) : 0,
+              regular_ot_hours: hasIncrement ? 0 : roundDutyDays(otHours),
+              increment_ot_hours: hasIncrement ? roundDutyDays(otHours) : 0,
               service_charge_claimed: round(totalBilling),
               gst_18: round(lineTax.total),
               invoice_value: round(totalBilling + lineTax.total),
-              total_duties: round(workingDays + otDuties),
-              total_ot_hours: round(otHours),
+              total_duties: roundDutyDays(workingDays + otDuties),
+              total_ot_hours: roundDutyDays(otHours),
               remarks: "",
               sg_rate: rate.billRate,
-              worked_days: round(workingDays + otDuties),
+              worked_days: roundDutyDays(workingDays + otDuties),
 
               service_start_date: `${String(period.start).slice(8, 10)}-${String(period.start).slice(5, 7)}-${String(period.start).slice(0, 4)}`,
               service_end_date: `${String(period.end).slice(8, 10)}-${String(period.end).slice(5, 7)}-${String(period.end).slice(0, 4)}`,

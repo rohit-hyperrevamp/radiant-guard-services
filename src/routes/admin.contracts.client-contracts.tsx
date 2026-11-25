@@ -115,6 +115,7 @@ import { fetchActiveClientIds } from "@/lib/active-clients";
 import { payrollPeriodForMonth } from "@/lib/payroll-period";
 import { contractMonthlyBilling, contractDailyBilling } from "@/lib/contract-rate-display";
 import { periodDateList } from "@/lib/mis-billing";
+import { generateNextContractCode, generateNextProspectCode, isUniqueViolation } from "@/lib/contract-codes";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/contracts/client-contracts")({
@@ -634,15 +635,6 @@ function applyApprovalPickerToPayload(
   return payload;
 }
 
-function nextContractCode(existing: string[]): string {
-  let max = 0;
-  for (const code of existing) {
-    const m = code.match(/CON(\d+)/i);
-    if (m) max = Math.max(max, parseInt(m[1], 10));
-  }
-  return `CON${String(max + 1).padStart(5, "0")}`;
-}
-
 /**
  * A unit may hold at most ONE active client contract at a time. Expired /
  * pending / lost contracts for the same unit are fine. Throws when another
@@ -855,15 +847,8 @@ function useContracts() {
 
         let nextCode = p.contractCode || String(before?.contract_code ?? "");
         if (!nextCode) {
-          const { data: codeRows, error: codeErr } = await supabase
-            .from("client_contracts" as never)
-            .select("contract_code")
-            .not("contract_code", "is", null);
-          if (codeErr) throw codeErr;
-          const existing = ((codeRows as unknown as Record<string, unknown>[]) ?? [])
-            .map((r) => String(r.contract_code ?? ""))
-            .filter(Boolean);
-          nextCode = nextContractCode(existing);
+          // All codes (paged / DB function) — a plain select is capped at 1,000 rows.
+          nextCode = await generateNextContractCode();
         }
 
         const uidRes = await supabase.auth.getUser();
@@ -922,12 +907,21 @@ function useContracts() {
         }
       }
 
-      const { data: savedRow, error } = await supabase
-        .from("client_contracts" as never)
-        .update(after as never)
-        .eq("id", id)
-        .select("id,start_date,end_date,expiry_date")
-        .single();
+      const writeContract = () =>
+        supabase
+          .from("client_contracts" as never)
+          .update(after as never)
+          .eq("id", id)
+          .select("id,start_date,end_date,expiry_date")
+          .single();
+      let { data: savedRow, error } = await writeContract();
+      // A freshly generated code can be taken by someone approving at the same
+      // moment — pick the next free one and retry (up to 2 more times).
+      const generatedCode = !p.contractCode && !String(before?.contract_code ?? "") && "contract_code" in after;
+      for (let i = 0; error && generatedCode && isUniqueViolation(error) && i < 2; i++) {
+        (after as Record<string, unknown>).contract_code = await generateNextContractCode();
+        ({ data: savedRow, error } = await writeContract());
+      }
       if (error) throw error;
       const saved = savedRow as Record<string, unknown> | null;
       const savedStartDate = String(saved?.start_date ?? "");
@@ -968,17 +962,9 @@ function useContracts() {
       if (srcErr) throw srcErr;
       const src = srcRow as unknown as Record<string, unknown>;
 
-      const { data: codeRows, error: codeErr } = await supabase
-        .from("client_contracts" as never)
-        .select("contract_code,prospect_code");
-      if (codeErr) throw codeErr;
-      const all = (codeRows as unknown as Record<string, unknown>[]) ?? [];
-      const newContractCode = src.contract_code
-        ? nextContractCode(all.map((r) => String(r.contract_code ?? "")).filter(Boolean))
-        : null;
-      const newProspectCode = nextProspectCode(
-        all.map((r) => String(r.prospect_code ?? "")).filter(Boolean),
-      );
+      // All codes across every page — a plain select is capped at 1,000 rows.
+      const newContractCode = src.contract_code ? await generateNextContractCode() : null;
+      const newProspectCode = await generateNextProspectCode();
 
       const uidRes = await supabase.auth.getUser();
       const copy: Record<string, unknown> = { ...src };
@@ -995,13 +981,17 @@ function useContracts() {
         signed_pdf_url: null,
       });
 
-      const { data: inserted, error: insErr } = await supabase
-        .from("client_contracts" as never)
-        .insert(copy as never)
-        .select("id")
-        .single();
+      const insertCopy = () =>
+        supabase.from("client_contracts" as never).insert(copy as never).select("id").single();
+      let { data: inserted, error: insErr } = await insertCopy();
+      // Codes taken by a concurrent save: regenerate and retry (up to 2 more times).
+      for (let i = 0; insErr && isUniqueViolation(insErr) && i < 2; i++) {
+        if (copy.contract_code) copy.contract_code = await generateNextContractCode();
+        copy.prospect_code = await generateNextProspectCode();
+        ({ data: inserted, error: insErr } = await insertCopy());
+      }
       if (insErr) throw insErr;
-      const newId = String((inserted as Record<string, unknown>).id);
+      const newId = String((inserted as unknown as Record<string, unknown>).id);
 
       const { data: resRows, error: resErr } = await supabase
         .from("contract_resources" as never)

@@ -28,6 +28,8 @@ import {
   type PincodeRangeLike,
   type PtSlabLike,
   normalizeOtEsi,
+  lwfPeriodMonth,
+  roundGrossRupees,
 } from "@/lib/payroll-calc";
 import { resolveLwf, type LwfRow } from "@/lib/lwf-lookup";
 import { exactDayRateFor, invoiceExtraDutyRate, invoiceDutyBillingLines, showsHourlyEdAsDays, isCli2989Caretaker, splitInvoiceDuties } from "@/lib/invoice-duty-rates";
@@ -350,7 +352,8 @@ export function computeInvoiceUnit(src: InvoiceUnitData, g: InvoiceGlobals) {
     payrollDayBase: r.payroll_day_base_id ? pdbMap.get(String(r.payroll_day_base_id)) ?? null : null,
   }) as ContractResourceLike;
   const hydrate = (list: ContractResourceLike[]) =>
-    hydrateFormulasWith(list as never[], g.masters).map((x) => refreshBillingAddOns(x as ContractResourceLike));
+    // days_in_month / working_days in add-on formulas follow this invoice period, not today.
+    hydrateFormulasWith(list as never[], g.masters).map((x) => refreshBillingAddOns(x as ContractResourceLike, { daysInMonth: periodDates.length }));
 
   const resourceByDesignation = new Map<string, ContractResourceLike>();
   const resourceByShiftKey = new Map<string, ContractResourceLike>();
@@ -522,11 +525,11 @@ export function computeInvoiceUnit(src: InvoiceUnitData, g: InvoiceGlobals) {
       const applied = applyEmployeeAdditions(wages, extraAdds, totals.pDays, { isDisabled: candidateIsDisabled, period: { ot: totals.otDays, ph: totals.phDays, payable_days: totals.tDays, days_in_month: periodDates.length } });
       Object.assign(wages, applied.wages);
       (wages as unknown as { additions: PerEmpItem[] }).additions = applied.additions;
-      const pt = resolvePtAmount({ state: ptState, pincode: ptPincode, gender: candidateGender, earnedGross: wages.earnedGross, slabs: ptSlabs, ranges: pincodeRanges });
+      const pt = resolvePtAmount({ state: ptState, pincode: ptPincode, gender: candidateGender, earnedGross: roundGrossRupees(wages.earnedGross), slabs: ptSlabs, ranges: pincodeRanges });
       Object.assign(wages, applyPtToWageComputation(wages, pt.amount));
       if (lwfRows && pincodeRanges) {
         const lwfRes = resolveLwf(String(ptPincode ?? ""), pincodeRanges as never, lwfRows, ptState);
-        const periodMonth = new Date(start).getMonth() + 1;
+        const periodMonth = lwfPeriodMonth(end);
         let applies = false;
         let employee = 0;
         let employer = 0;
@@ -695,6 +698,13 @@ export function invoiceLineMath(r: Pick<InvoiceRow, "resource" | "wages" | "tota
     !r.wages || !r.resource
       ? 0
       : billingMode === "lumpsum" || billingMode === "man_months"
+        // KNOWN LIMITATION (review I1, not yet fixed): fixed-value modes bill the
+        // full contracted monthly rate on EVERY row — each roster person, each
+        // reliever line and each mid-month rate window — instead of once per
+        // contracted resource quantity per period. No active contract uses these
+        // modes today. Before enabling one, bill per contract line × quantity
+        // (and prorate across rate windows) at unit level, and update the page
+        // totals, print, Tally, MIS and dashboard-finance consumers together.
         ? contracted
         : Math.round((exactDayRate ? exactRate * (billsHourly ? (r.totals.tDays ?? 0) * shiftHours : (r.totals.tDays ?? 0)) : unitRate * unitQuantity) * 100) / 100);
   return {
@@ -770,29 +780,21 @@ export function invoiceUnitTaxable(result: InvoiceUnitResult, ctx: Omit<InvoiceM
 
 /** Load one site's invoice data with the invoice page's own queries. */
 export async function loadInvoiceUnitData(unitId: string, start: string, end: string): Promise<InvoiceUnitData> {
-  const [unitRes, flagsRes, primaryRes, linksRes] = await Promise.all([
+  // Every read below throws on failure: a failed load must surface as an error,
+  // never as an invoice priced at the base rate or at ₹0.
+  const [unitRes, primaryRes, linksRes] = await Promise.all([
     supabase
       .from("units")
       .select("id, code, customer_id, epf_cap_enabled, billing_state, billing_pincode, pt_state, ph_enabled, ph_multiplier, ph_day_value, ph_excluded_candidate_ids, ph_excluded_days, customers(name)" as never)
       .eq("id", unitId)
       .maybeSingle(),
-    supabase
-      .from("client_contracts")
-      .select("wo_as_present, exact_day_rate" as never)
-      .eq("unit_id", unitId)
-      .eq("record_type", "client")
-      .eq("status", "active")
-      .lte("start_date", end)
-      .or(`end_date.is.null,end_date.gte.${start}`)
-      .order("start_date", { ascending: false })
-      .limit(1),
     supabase.from("candidates").select(INVOICE_CANDIDATE_COLS).eq("unit_id", unitId).eq("is_enabled", true).eq("status", "active"),
     supabase.from("candidate_units").select("candidate_id, shift_hours" as never).eq("unit_id", unitId),
   ]);
+  if (unitRes.error) throw unitRes.error;
   if (primaryRes.error) throw primaryRes.error;
   if (linksRes.error) throw linksRes.error;
   const unit = (unitRes.data ?? null) as Row | null;
-  const flags = ((flagsRes.data ?? []) as unknown as Row[])[0];
   const links = (linksRes.data ?? []) as unknown as { candidate_id: string; shift_hours?: number | null }[];
   const linkIds = links.map((l) => l.candidate_id);
   let secondary: InvoiceCandidate[] = [];
@@ -806,20 +808,25 @@ export async function loadInvoiceUnitData(unitId: string, start: string, end: st
   let leavers: InvoiceCandidate[] = [];
   const attended = (await fetchAttendedCandidateIds(unitId, start, end)).filter((id) => !have.has(id));
   if (attended.length) {
-    const { data } = await supabase.from("candidates").select(INVOICE_CANDIDATE_COLS).in("id", attended);
+    const { data, error } = await supabase.from("candidates").select(INVOICE_CANDIDATE_COLS).in("id", attended);
+    if (error) throw error;
     leavers = (data ?? []) as InvoiceCandidate[];
   }
   const entries = await fetchAttendanceEntriesForPeriod({ unitId, start, end });
-  const periodContract = await fetchPeriodContract<Row>(unitId, start, end, "id, payroll_window_id, billing_type_id, gst_option");
+  // WO-as-Present / exact-day-rate are read from this period's contract (the
+  // one that prices the invoice), not whichever contract is active today.
+  const periodContract = await fetchPeriodContract<Row>(unitId, start, end, "id, payroll_window_id, billing_type_id, gst_option, wo_as_present, exact_day_rate");
   let billingMode: InvoiceBillingMode = "man_days";
   if (periodContract?.billing_type_id) {
-    const { data: bt } = await supabase.from("billing_types" as never).select("code").eq("id", String(periodContract.billing_type_id)).maybeSingle();
+    const { data: bt, error: btError } = await supabase.from("billing_types" as never).select("code").eq("id", String(periodContract.billing_type_id)).maybeSingle();
+    if (btError) throw btError;
     billingMode = billingModeFromCode(((bt as unknown) as { code?: string | null } | null)?.code ?? "man_days");
   }
   let resources: Row[] = [];
   let revisions: RateRevisionRow[] | null = null;
   if (periodContract?.id) {
-    const { data: r } = await supabase.from("contract_resources" as never).select(RESOURCE_COLS).eq("contract_id", String(periodContract.id));
+    const { data: r, error: resourcesError } = await supabase.from("contract_resources" as never).select(RESOURCE_COLS).eq("contract_id", String(periodContract.id));
+    if (resourcesError) throw resourcesError;
     resources = (r ?? []) as unknown as Row[];
     const ids = resources.map((x) => x.id).filter(Boolean).map(String);
     revisions = ids.length ? await fetchRevisions(ids) : null;
@@ -846,6 +853,8 @@ export async function loadInvoiceUnitData(unitId: string, start: string, end: st
         .eq("status", "active")
         .or(`unit_id.is.null,unit_id.eq.${unitId}`),
     ]);
+    if (addsRes.error) throw addsRes.error;
+    if (dedsRes.error) throw dedsRes.error;
     additions = (addsRes.data ?? []) as unknown as RawAddition[];
     deductions = (dedsRes.data ?? []) as unknown as RawDeduction[];
   }
@@ -862,8 +871,8 @@ export async function loadInvoiceUnitData(unitId: string, start: string, end: st
     ptState: ptStateRaw || billingState,
     ptPincode: ptStateRaw ? null : billingPincode,
     unitPh: unitPhFromRow(unit as never),
-    woAsPresent: Boolean(flags?.wo_as_present),
-    exactDayRate: Boolean(flags?.exact_day_rate),
+    woAsPresent: Boolean(periodContract?.wo_as_present),
+    exactDayRate: Boolean(periodContract?.exact_day_rate),
     primary,
     links,
     secondary,

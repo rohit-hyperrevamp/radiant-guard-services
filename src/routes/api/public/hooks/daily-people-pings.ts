@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { hookSecretOk } from "@/lib/server-guards";
 
 type Row = {
   id: string;
@@ -28,7 +29,12 @@ function yearsBetween(fromISO: string, to: Date) {
 export const Route = createFileRoute("/api/public/hooks/daily-people-pings")({
   server: {
     handlers: {
-      POST: async () => {
+      POST: async ({ request }) => {
+        // Scheduled job only: the caller must send the shared secret in
+        // `x-hook-secret` (or `Authorization: Bearer …`). Missing env = closed.
+        if (!hookSecretOk(request.headers, process.env["DAILY_PEOPLE_PINGS_SECRET"])) {
+          return new Response("Unauthorized", { status: 401, headers: { "Cache-Control": "no-store" } });
+        }
         const { supabaseAdmin } = await import("@/lib/radiant-admin.server");
 
         const today = todayMMDD();

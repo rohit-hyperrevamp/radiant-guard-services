@@ -300,7 +300,20 @@ export type WageComputation = {
   perDutyOtAmount: number;
   otDuties: number;
   totalOtAmount: number;
+  /**
+   * Amount by which deductions exceed gross (0 when net pay is positive).
+   * Net pay is still shown as max(0, …); this lets the UI warn instead of
+   * silently hiding the gap. Nothing is carried forward automatically.
+   */
+  shortfall?: number;
 };
+
+/** Deductions in excess of gross, rounded to paise; 0 when gross covers them. */
+export function wageShortfall(wages: Pick<WageComputation, "earnedGross" | "totalDeductions"> | null | undefined): number {
+  if (!wages) return 0;
+  const gap = round2((Number(wages.totalDeductions) || 0) - (Number(wages.earnedGross) || 0));
+  return gap > 0 ? gap : 0;
+}
 
 // Earned-component name matching the Extra Duty (ED) wage line.
 export const EXTRA_DUTY_COMPONENT_RE = /extra\s*duty|\bovertime\b|\bover\s*time\b/i;
@@ -1805,9 +1818,23 @@ export function roundEsiUp(wages: WageComputation): WageComputation {
  * pay = rounded gross − deductions. Deductions are worked out on the exact
  * pay items, before this rounding.
  */
+/**
+ * Month (1-12) whose LWF schedule applies to a pay window: the period END
+ * month, matching PT and the compliance ledger (26 May–25 Jun is June).
+ * Shared by payroll and invoicing so both apply LWF to the same window.
+ */
+export function lwfPeriodMonth(end: string): number {
+  return Number(String(end).slice(5, 7));
+}
+
+/** Whole-rupee rounding used for the final gross (₹0.50 goes up). */
+export function roundGrossRupees(exact: number): number {
+  return Math.floor((Number(exact) || 0) + 0.5 + 1e-9);
+}
+
 export function roundFinalGross(wages: WageComputation): WageComputation {
   const exact = Number(wages.earnedGross) || 0;
-  const gross = Math.floor(exact + 0.5 + 1e-9);
+  const gross = roundGrossRupees(exact);
   if (Math.abs(gross - exact) < 1e-9) return wages;
   return {
     ...wages,

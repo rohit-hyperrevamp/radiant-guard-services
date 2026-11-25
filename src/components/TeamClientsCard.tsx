@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useManagerFieldOfficerScope } from "@/lib/use-manager-scope";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
+import { fetchAllPages, fetchInChunks } from "@/lib/supabase-batch";
+import { istAddDays, istDate } from "@/lib/dashboard-base";
 
 const MATE_TONES = [
   "bg-rose-100/80 dark:bg-rose-500/15",
@@ -16,9 +18,7 @@ const MATE_TONES = [
   "bg-violet-100/80 dark:bg-violet-500/15",
   "bg-sky-100/80 dark:bg-sky-500/15",
 ];
-const CHUNK = 200;
-const chunks = <T,>(a: T[]) => Array.from({ length: Math.ceil(a.length / CHUNK) }, (_, i) => a.slice(i * CHUNK, i * CHUNK + CHUNK));
-const todayIso = () => new Date(Date.now() + 5.5 * 3600_000).toISOString().slice(0, 10);
+const todayIso = () => istDate();
 
 type Mate = { id: string; full_name: string | null; employee_code: string | null; designation: string | null; sites: string[]; siteIds: string[] };
 type Site = {
@@ -46,18 +46,15 @@ export function TeamClientsCard() {
     queryFn: async () => {
       if (!candidateId) return [] as Array<Mate & { inAt: string | null }>;
       // My team = direct reports only (candidates.reports_to = me).
-      const direct = await supabase.from("candidates").select("id").eq("reports_to", candidateId).in("status", ["active", "approved"]);
-      if (direct.error) throw direct.error;
-      const ids = new Set<string>();
-      for (const r of (direct.data ?? []) as Array<{ id: string }>) ids.add(r.id);
-      if (!ids.size) return [] as Array<Mate & { inAt: string | null }>;
-      const [people, punches] = await Promise.all([
-        supabase.from("candidates").select("id,full_name,employee_code,designation_id,role_key").in("id", [...ids]),
-        supabase.from("self_attendance_punches").select("candidate_id,check_in_at").in("candidate_id", [...ids]).eq("punch_date", todayIso()),
-      ]);
-      if (people.error) throw people.error;
-      if (punches.error) throw punches.error;
-      const records = (people.data ?? []) as unknown as Array<Omit<Mate, "designation"> & { designation_id: string | null; role_key: string | null }>;
+      // Every read is paged/chunked: PostgREST stops at 1,000 rows otherwise.
+      const records = await fetchAllPages<Omit<Mate, "designation" | "sites" | "siteIds"> & { designation_id: string | null; role_key: string | null }>((from, to) =>
+        supabase.from("candidates").select("id,full_name,employee_code,designation_id,role_key").eq("reports_to", candidateId).in("status", ["active", "approved"]).order("id").range(from, to),
+      );
+      if (!records.length) return [] as Array<Mate & { inAt: string | null }>;
+      const ids = records.map((p) => p.id);
+      const punches = await fetchInChunks<{ candidate_id: string; check_in_at: string | null }>(ids, (chunk, from, to) =>
+        supabase.from("self_attendance_punches").select("id,candidate_id,check_in_at").in("candidate_id", chunk).eq("punch_date", todayIso()).order("id").range(from, to),
+      );
       const designationIds = [...new Set(records.flatMap((p) => p.designation_id ? [p.designation_id] : []))];
       const designationNames = new Map<string, string>();
       if (designationIds.length) {
@@ -65,7 +62,7 @@ export function TeamClientsCard() {
         if (error) throw error;
         for (const row of data ?? []) designationNames.set(row.id, row.name);
       }
-      const inAt = new Map(((punches.data ?? []) as Array<{ candidate_id: string; check_in_at: string | null }>).map((p) => [p.candidate_id, p.check_in_at]));
+      const inAt = new Map(punches.map((p) => [p.candidate_id, p.check_in_at]));
       const mates = records
         .filter((p) => p.role_key !== "guard" && p.role_key !== "security_guard")
         .map((p) => ({ ...p, designation: p.designation_id ? designationNames.get(p.designation_id) ?? null : null, inAt: inAt.get(p.id) ?? null }));
@@ -74,12 +71,16 @@ export function TeamClientsCard() {
       const siteMap = new Map<string, Set<string>>();
       const unitName = new Map<string, string>();
       if (mateIds.length) {
-        const [managed, mapped] = await Promise.all([
-          supabase.from("units").select("id,name,account_manager_id,operations_manager_id,hr_executive_id").eq("status", "active").or(`account_manager_id.in.(${mateIds.join(",")}),operations_manager_id.in.(${mateIds.join(",")}),hr_executive_id.in.(${mateIds.join(",")})`).limit(5000),
-          supabase.from("candidate_units").select("candidate_id,unit_id").in("candidate_id", mateIds).limit(5000),
+        const [managedRows, mappedRows] = await Promise.all([
+          fetchInChunks<{ id: string; name: string | null; account_manager_id: string | null; operations_manager_id: string | null; hr_executive_id: string | null }>(mateIds, (chunk, from, to) =>
+            supabase.from("units").select("id,name,account_manager_id,operations_manager_id,hr_executive_id").eq("status", "active").or(`account_manager_id.in.(${chunk.join(",")}),operations_manager_id.in.(${chunk.join(",")}),hr_executive_id.in.(${chunk.join(",")})`).order("id").range(from, to),
+          ),
+          fetchInChunks<{ candidate_id: string; unit_id: string }>(mateIds, (chunk, from, to) =>
+            supabase.from("candidate_units").select("id,candidate_id,unit_id").in("candidate_id", chunk).order("id").range(from, to),
+          ),
         ]);
-        if (managed.error) throw managed.error;
-        if (mapped.error) throw mapped.error;
+        const managed = { data: managedRows };
+        const mapped = { data: mappedRows };
         const add = (cid: string | null, unit: { id: string; name: string | null }) => {
           if (!cid) return;
           unitName.set(unit.id, unit.name ?? unit.id);
@@ -91,9 +92,10 @@ export function TeamClientsCard() {
         }
         const extraIds = [...new Set(((mapped.data ?? []) as Array<{ unit_id: string }>).map((r) => r.unit_id).filter((id) => !unitName.has(id)))];
         if (extraIds.length) {
-          const { data: extra, error: extraErr } = await supabase.from("units").select("id,name").eq("status", "active").in("id", extraIds);
-          if (extraErr) throw extraErr;
-          for (const u of (extra ?? []) as Array<{ id: string; name: string | null }>) unitName.set(u.id, u.name ?? u.id);
+          const extra = await fetchInChunks<{ id: string; name: string | null }>(extraIds, (chunk, from, to) =>
+            supabase.from("units").select("id,name").eq("status", "active").in("id", chunk).order("id").range(from, to),
+          );
+          for (const u of extra) unitName.set(u.id, u.name ?? u.id);
         }
         for (const r of (mapped.data ?? []) as Array<{ candidate_id: string; unit_id: string }>) {
           if (!unitName.has(r.unit_id)) continue;
@@ -114,33 +116,38 @@ export function TeamClientsCard() {
     enabled: unitIds.length > 0,
     staleTime: 5 * 60_000,
     queryFn: async () => {
-      const units: Array<{ id: string; code: string | null; name: string | null; customer_id: string | null }> = [];
+      // Paged per chunk: a manager's people/contract/sheet rows easily pass the
+      // 1,000-row cap, which silently undercounted headcount per site.
+      // Latest sheet only matters: look back a few months, not the full history.
+      const sheetSince = istAddDays(istDate(), -120);
+      const [units, contractRows, peopleRows, sheetRows] = await Promise.all([
+        fetchInChunks<{ id: string; code: string | null; name: string | null; customer_id: string | null }>(unitIds, (chunk, from, to) =>
+          supabase.from("units").select("id,code,name,customer_id").eq("status", "active").in("id", chunk).order("id").range(from, to),
+        ),
+        fetchInChunks<{ unit_id: string }>(unitIds, (chunk, from, to) =>
+          supabase.from("client_contracts").select("id,unit_id").in("unit_id", chunk).eq("status", "active").order("id").range(from, to),
+        ),
+        fetchInChunks<{ unit_id: string }>(unitIds, (chunk, from, to) =>
+          supabase.from("candidates").select("id,unit_id").in("unit_id", chunk).in("status", ["active", "approved"]).order("id").range(from, to),
+        ),
+        fetchInChunks<{ unit_id: string; status: string; period_end: string }>(unitIds, (chunk, from, to) =>
+          supabase.from("attendance_sheets").select("id,unit_id,status,period_end").in("unit_id", chunk).gte("period_end", sheetSince).order("id").range(from, to),
+        ),
+      ]);
       const contracts = new Map<string, number>();
       const people = new Map<string, number>();
       const sheet = new Map<string, { s: string; p: string }>();
-      for (const part of chunks(unitIds)) {
-        const [u, c, p, s] = await Promise.all([
-          supabase.from("units").select("id,code,name,customer_id").eq("status", "active").in("id", part),
-          supabase.from("client_contracts").select("unit_id").in("unit_id", part).eq("status", "active").limit(5000),
-          supabase.from("candidates").select("unit_id").in("unit_id", part).in("status", ["active", "approved"]).limit(20000),
-          supabase.from("attendance_sheets").select("unit_id,status,period_end").in("unit_id", part).order("period_end", { ascending: false }).limit(5000),
-        ]);
-        for (const result of [u, c, p, s]) if (result.error) throw result.error;
-        units.push(...((u.data ?? []) as typeof units));
-        for (const r of (c.data ?? []) as Array<{ unit_id: string }>) contracts.set(r.unit_id, (contracts.get(r.unit_id) ?? 0) + 1);
-        for (const r of (p.data ?? []) as Array<{ unit_id: string }>) people.set(r.unit_id, (people.get(r.unit_id) ?? 0) + 1);
-        for (const r of (s.data ?? []) as Array<{ unit_id: string; status: string; period_end: string }>) {
-          const cur = sheet.get(r.unit_id);
-          if (!cur || r.period_end > cur.p) sheet.set(r.unit_id, { s: r.status, p: r.period_end });
-        }
+      for (const r of contractRows) contracts.set(r.unit_id, (contracts.get(r.unit_id) ?? 0) + 1);
+      for (const r of peopleRows) people.set(r.unit_id, (people.get(r.unit_id) ?? 0) + 1);
+      for (const r of sheetRows) {
+        const cur = sheet.get(r.unit_id);
+        if (!cur || r.period_end > cur.p) sheet.set(r.unit_id, { s: r.status, p: r.period_end });
       }
       const custIds = [...new Set(units.map((u) => u.customer_id).filter(Boolean) as string[])];
       const orgs = new Map<string, string>();
-      for (const part of chunks(custIds)) {
-        const { data, error } = await supabase.from("customers").select("id,name").in("id", part);
-        if (error) throw error;
-        for (const r of (data ?? []) as Array<{ id: string; name: string }>) orgs.set(r.id, r.name);
-      }
+      for (const r of await fetchInChunks<{ id: string; name: string }>(custIds, (chunk, from, to) =>
+        supabase.from("customers").select("id,name").in("id", chunk).order("id").range(from, to),
+      )) orgs.set(r.id, r.name);
       return units
         .map<Site>((u) => ({
           id: u.id,

@@ -71,6 +71,10 @@ import { GuidedForm, useGuidedFormCloseGuard, useGuidedFormDraft, type GuidedFor
 import { resolvePt, usePincodeRanges, usePtSlabs } from "@/lib/pt-lookup";
 import { pickEsicBranchId } from "@/lib/esic-auto-map";
 import { MONTH_NAMES, resolveLwf, useLwfRows } from "@/lib/lwf-lookup";
+import { plainDbError } from "@/lib/form-copy";
+import { useGstBillingBranches, resolveGstBillingBranch } from "@/lib/gst-billing";
+import { useOrgSettings } from "@/lib/org-settings";
+import { invoiceCompanyState, isIntraStateSupply } from "@/lib/gst-tax";
 import {
   resolveFieldOfficersForUnit,
   resolveGuardsForUnit,
@@ -341,7 +345,7 @@ function UnitManagerPage() {
             <Input
               value={queryInput}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by code, name, branch, organisation…"
+              placeholder="Search by code, name, branch, organization…"
               className="h-10 rounded-xl border-transparent bg-card/80 pl-9 shadow-sm focus-visible:border-accent/30"
             />
           </div>
@@ -368,7 +372,7 @@ function UnitManagerPage() {
               );
               setCityFilter((current) => current.filter((city) => eligibleCities.has(city)));
             }}
-            allLabel="All organisations"
+            allLabel="All organizations"
             className="h-10 w-full shrink-0 rounded-xl border-transparent bg-card/80 shadow-sm sm:w-auto sm:min-w-52"
           />
           <MultiSelectFilter
@@ -530,7 +534,7 @@ function UnitManagerPage() {
             className="h-9 rounded-lg bg-primary px-2.5 text-xs text-primary-foreground shadow-sm hover:bg-primary/90 sm:h-10 sm:rounded-xl sm:px-4 sm:text-sm"
           >
             <Plus className="mr-1.5 h-4 w-4" />
-            Add Client
+            Add client
           </Button>
         </div>}
       </div>
@@ -597,7 +601,7 @@ function UnitManagerPage() {
                           setEditing(u);
                           setFormOpen(true);
                         }}
-                        aria-label="Edit"
+                        aria-label="Edit client"
                       >
                         <Edit2 className="h-4 w-4" />
                       </Button>
@@ -651,7 +655,7 @@ function UnitManagerPage() {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete unit?</AlertDialogTitle>
+            <AlertDialogTitle>Delete client?</AlertDialogTitle>
             <AlertDialogDescription>
               This will remove <span className="font-mono font-semibold text-foreground">{deleting?.code}</span>
               {deleting?.name ? <> – {deleting.name}</> : null} from the directory.
@@ -802,6 +806,20 @@ function UnitFormDialog({
 
   const set = <K extends keyof Omit<Unit, "id">>(k: K, v: Omit<Unit, "id">[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
+  // Submit always reads the latest form, even when the save is re-dispatched
+  // by the shared confirm prompt after other state updates have landed.
+  const formRef = useRef(form);
+  formRef.current = form;
+
+  // Invoice tax split preview: same supplier-state rule the invoice page uses.
+  const { data: gstBranches = [] } = useGstBillingBranches();
+  const { data: orgSettings } = useOrgSettings();
+  const gstSupply = useMemo(() => {
+    if (!form.gstPayable || !form.billingState.trim()) return null;
+    const branch = resolveGstBillingBranch(gstBranches, form.billingState, orgSettings ?? null);
+    const companyState = invoiceCompanyState(branch?.stateName, orgSettings?.company_state);
+    return { intra: isIntraStateSupply(form.billingState, companyState), companyState };
+  }, [form.gstPayable, form.billingState, gstBranches, orgSettings]);
 
   // The ESIC sub-code follows the site's location, so map it automatically
   // whenever the site has no branch yet. A manual choice is never overwritten.
@@ -1054,7 +1072,11 @@ function UnitFormDialog({
   const saveUnit = async () => {
     if (isSaving) return;
     setError(null);
-    if (!form.uniformIncluded && !(Number(form.uniformFeeAmount) > 0)) {
+    const latest = formRef.current;
+    const payload: Omit<Unit, "id"> = latest.gstPayable && !latest.gstType
+      ? { ...latest, gstType: "Regular" }
+      : latest;
+    if (!payload.uniformIncluded && !(Number(payload.uniformFeeAmount) > 0)) {
       const msg = "Enter the uniform fee (₹) — uniform is not included in this unit's contract.";
       setError(msg);
       toast.error(msg);
@@ -1063,12 +1085,15 @@ function UnitFormDialog({
 
     setIsSaving(true);
     try {
-      const result = await onSubmit(form);
+      const result = await onSubmit(payload);
       if (result.error) {
-        setError(result.error);
-        toast.error(result.error);
+        console.error("[Clients] save failed:", result.error);
+        const message = plainDbError(result.error, "client");
+        setError(message);
+        toast.error(message);
         return;
       }
+      if (!editing) draft.clear();
       if (result.id && clientAttributes.length > 0) {
         try {
           await saveClientAttributeValues(clientAttributes, result.id, clientAttrValues);
@@ -1085,7 +1110,8 @@ function UnitFormDialog({
         });
       }
     } catch (cause) {
-      const message = cause instanceof Error ? cause.message : "Could not save the client. Please try again.";
+      console.error("[Clients] save failed:", cause);
+      const message = plainDbError(cause instanceof Error ? cause.message : "", "client");
       setError(message);
       toast.error(message);
     } finally {
@@ -1107,6 +1133,7 @@ function UnitFormDialog({
     if (key === "organization" && !form.customerId) return "Select an organization";
     if (key === "organization" && !form.branchId) return "Select a branch";
     if (key === "details" && !form.name.trim()) return "Client name is required";
+    if (key === "details" && form.gstPayable && !form.gstType) return "Select the GST type";
     if (key === "billing" && form.billingPincode && !/^\d{6}$/.test(form.billingPincode)) return "Enter a valid billing pincode";
     if (key === "inclusions" && !form.uniformIncluded && !(Number(form.uniformFeeAmount) > 0)) return "Enter the uniform fee";
     return null;
@@ -1137,12 +1164,12 @@ function UnitFormDialog({
         <DialogHeader className="sr-only">
           <DialogTitle>{editing ? "Edit client" : "Add client"}</DialogTitle>
           <DialogDescription>
-            A unit is an operational location mapped to a branch and an organisation.
+            A client is an operational location mapped to a branch and an organization.
           </DialogDescription>
         </DialogHeader>
 
-        <GuidedForm closeGuardRef={closeGuard.ref} title={editing ? "Edit client" : "New client"} steps={steps} stepKey={stepKey} onStepChange={requestStep} isStepComplete={isStepComplete} onCancel={() => onOpenChange(false)} onSaveDraft={editing ? undefined : () => { draft.save(); toast.success("Draft saved"); }} onSubmit={() => void saveUnit()} saving={isSaving} submitLabel={editing ? "Save changes" : "Create client"}>
-          {draft.hasDraft && !editing && stepKey === "organization" && <div className="mb-4 flex items-center justify-between rounded-xl border border-accent/25 bg-accent/5 px-4 py-3 text-sm"><span className="text-muted-foreground">Saved draft available</span><Button size="sm" variant="outline" onClick={draft.restore}>Restore</Button></div>}
+        <GuidedForm closeGuardRef={closeGuard.ref} title={editing ? "Edit client" : "New client"} steps={steps} stepKey={stepKey} onStepChange={requestStep} isStepComplete={isStepComplete} onCancel={() => onOpenChange(false)} onDiscard={editing ? undefined : draft.clear} entityLabel="client" onSaveDraft={editing ? undefined : () => { draft.save(); toast.success("Draft saved"); }} onSubmit={() => void saveUnit()} saving={isSaving} submitLabel={editing ? "Save changes" : "Create client"}>
+          {draft.hasDraft && !editing && stepKey === "organization" && <div className="mb-4 flex items-center justify-between rounded-xl border border-accent/25 bg-accent/5 px-4 py-3 text-sm"><span className="text-muted-foreground">You have a saved draft</span><Button type="button" size="sm" variant="outline" onClick={() => { draft.restore(); toast.success("Draft restored"); }}>Restore</Button></div>}
         <div className="modern-business-form">
           <div className={stepKey === "organization" ? "block" : "hidden"}>
           {/* ORG & BRANCH (first) */}
@@ -1150,11 +1177,11 @@ function UnitFormDialog({
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Organisation" required>
                 <Select value={form.customerId ?? ""} onValueChange={(v) => set("customerId", v || null)}>
-                  <SelectTrigger><SelectValue placeholder="Select organisation first" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Select an organization" /></SelectTrigger>
                   <SelectContent>
                     {customerOptions.length === 0 ? (
                       <div className="px-2 py-3 text-center text-xs text-muted-foreground">
-                        No organisations yet
+                        No organizations yet
                       </div>
                     ) : (
                       customerOptions.map((c) => (
@@ -1171,7 +1198,7 @@ function UnitFormDialog({
                   disabled={!form.customerId}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={form.customerId ? "Select branch" : "Pick organisation first"} />
+                    <SelectValue placeholder={form.customerId ? "Select branch" : "Select an organization first"} />
                   </SelectTrigger>
                   <SelectContent>
                     {branchOptions.length === 0 ? (
@@ -1300,12 +1327,13 @@ function UnitFormDialog({
                     {form.gstPayable ? "Yes" : "No"}
                   </span>
                   <Switch
+                    aria-label="GST payable"
                     checked={form.gstPayable}
                     onCheckedChange={(v) => {
                       set("gstPayable", v);
-                      if (!v) {
-                        setForm((f) => ({ ...f, gstType: "", gstNumber: "" }));
-                      }
+                      setForm((f) => (v
+                        ? { ...f, gstType: f.gstType || "Regular" }
+                        : { ...f, gstType: "", gstNumber: "" }));
                     }}
                   />
                 </div>
@@ -1330,7 +1358,11 @@ function UnitFormDialog({
                     />
                   </Field>
                   <div className="sm:col-span-2 text-xs text-muted-foreground">
-                    GSTIN portal auto-verification (type detection) is coming soon — for now please pick the type manually.
+                    {gstSupply
+                      ? gstSupply.intra
+                        ? `Invoices will charge CGST + SGST (billing state matches the supplier state, ${gstSupply.companyState}).`
+                        : `Invoices will charge IGST (billing state differs from the supplier state, ${gstSupply.companyState}).`
+                      : "Add the billing state to see whether invoices charge CGST + SGST or IGST."}
                   </div>
                 </>
               )}
@@ -1403,7 +1435,7 @@ function UnitFormDialog({
                 onCheckedChange={(v) => set("shippingSameAsBilling", v)}
               />
               <ToggleRow
-                label="Same as organisation address"
+                label="Same as organization address"
                 checked={form.shippingSameAsOrg}
                 onCheckedChange={(v) => set("shippingSameAsOrg", v)}
               />
@@ -1590,7 +1622,7 @@ function UnitFormDialog({
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                  <div className="text-sm font-semibold">Public Holiday (PH)</div>
+                  <div className="text-sm font-semibold">Public holiday (PH)</div>
                   <Badge
                     className={cn(
                       "border-0 text-[10px] font-semibold uppercase tracking-wide",
@@ -1606,7 +1638,7 @@ function UnitFormDialog({
                   Credit extra duty when an employee is present on a public holiday. Absent on the holiday = no credit.
                 </p>
               </div>
-              <Switch checked={form.phEnabled} onCheckedChange={(v) => set("phEnabled", v)} />
+              <Switch aria-label="Public holiday credit" checked={form.phEnabled} onCheckedChange={(v) => set("phEnabled", v)} />
             </div>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               {form.phEnabled && (
@@ -1847,6 +1879,9 @@ function UnitFormDialog({
               <div><dt className="text-xs text-muted-foreground">Code</dt><dd className="mt-1 font-mono font-medium">{form.code || "Not entered"}</dd></div>
               <div><dt className="text-xs text-muted-foreground">Organization</dt><dd className="mt-1 font-medium">{selectedOrg?.name || "Not selected"}</dd></div>
               <div><dt className="text-xs text-muted-foreground">Location</dt><dd className="mt-1 font-medium">{form.location || form.billingCity || "Not entered"}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">GST</dt><dd className="mt-1 font-medium">{form.gstPayable ? `${form.gstType || "Regular"}${gstSupply ? ` · ${gstSupply.intra ? "CGST + SGST" : "IGST"}` : ""}` : "Not payable"}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Statutory</dt><dd className="mt-1 font-medium">PT {form.enablePt ? "on" : "off"} · LWF {form.enableLwf ? "on" : "off"}</dd></div>
+              <div><dt className="text-xs text-muted-foreground">Public holiday credit</dt><dd className="mt-1 font-medium">{form.phEnabled ? `On (+${form.phMultiplier || 1})` : "Off"}</dd></div>
             </dl>
           </Section>
           </div>
@@ -1884,7 +1919,7 @@ function ToggleRow({
   return (
     <div className="modern-form-toggle">
       <span className="text-sm text-foreground">{label}</span>
-      <Switch checked={checked} onCheckedChange={onCheckedChange} />
+      <Switch aria-label={label} checked={checked} onCheckedChange={onCheckedChange} />
     </div>
   );
 }
@@ -1984,7 +2019,7 @@ function ProfessionalTaxBlock({
         <div className="rounded-lg border border-border bg-background p-3 text-sm">
           {result.kind === "no_pincode" || result.kind === "invalid" ? (
             <p className="text-muted-foreground">
-              Navigate to <span className="font-semibold text-foreground">unit's billing</span> and provide a valid 6-digit pincode to view applicable PT slabs.
+              Add a valid 6-digit pincode on the <span className="font-semibold text-foreground">Billing</span> step to see the PT slabs that apply.
             </p>
           ) : result.kind === "no_match" ? (
             <p className="text-muted-foreground">
@@ -2067,7 +2102,7 @@ function LwfBlock({
         <div className="rounded-lg border border-border bg-background p-3 text-sm">
           {result.kind === "no_pincode" || result.kind === "invalid" ? (
             <p className="text-muted-foreground">
-              Navigate to <span className="font-semibold text-foreground">unit's billing</span> and provide a valid 6-digit pincode to view applicable LWF.
+              Add a valid 6-digit pincode on the <span className="font-semibold text-foreground">Billing</span> step to see the LWF that applies.
             </p>
           ) : result.kind === "no_state" ? (
             <p className="text-muted-foreground">

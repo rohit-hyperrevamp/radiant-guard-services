@@ -57,12 +57,72 @@ export type CharterPageData = {
 
 export const CHARTER_UNITS_QK = ["charter-units-v3-active"] as const;
 
-const SNAPSHOT_KEY = "radiant:charter-units:v3-active";
+const SNAPSHOT_PREFIX = "radiant:charter-units";
+const SNAPSHOT_VERSION = "v4";
 
-function readSnapshot(): CharterPageData | null {
+/**
+ * The fallback snapshot is owned by the signed-in user (keyed by auth id),
+ * never carries guard names, and every other user's or older unkeyed copy
+ * is removed on write and on sign-out — a shared device must not show the
+ * previous person's roster.
+ */
+export function charterSnapshotKey(owner: string): string {
+  return `${SNAPSHOT_PREFIX}:${SNAPSHOT_VERSION}:${owner}`;
+}
+
+function storage(): Storage | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = window.localStorage.getItem(SNAPSHOT_KEY);
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+/** Remove charter snapshots that don't belong to `keepOwner` (all when null). */
+export function clearCharterSnapshots(keepOwner: string | null = null) {
+  const store = storage();
+  if (!store) return;
+  try {
+    const keep = keepOwner ? charterSnapshotKey(keepOwner) : null;
+    const stale: string[] = [];
+    for (let i = 0; i < store.length; i++) {
+      const key = store.key(i);
+      if (key && key.startsWith(SNAPSHOT_PREFIX) && key !== keep) stale.push(key);
+    }
+    for (const key of stale) store.removeItem(key);
+  } catch {
+    /* storage unavailable — nothing to clear */
+  }
+}
+
+let authWatch = false;
+function watchIdentity() {
+  if (authWatch || typeof window === "undefined") return;
+  authWatch = true;
+  try {
+    supabase.auth.onAuthStateChange((_event, session) => {
+      clearCharterSnapshots(session?.user.id ?? null);
+    });
+  } catch {
+    authWatch = false;
+  }
+}
+
+async function currentOwner(): Promise<string | null> {
+  try {
+    const { data } = await supabase.auth.getSession();
+    return data.session?.user.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function readSnapshot(owner: string | null): CharterPageData | null {
+  const store = storage();
+  if (!store || !owner) return null;
+  try {
+    const raw = store.getItem(charterSnapshotKey(owner));
     if (!raw) return null;
     const rows = JSON.parse(raw) as CharterUnitRow[];
     if (!Array.isArray(rows)) return null;
@@ -72,10 +132,15 @@ function readSnapshot(): CharterPageData | null {
   }
 }
 
-function writeSnapshot(rows: CharterUnitRow[]) {
-  if (typeof window === "undefined") return;
+function writeSnapshot(owner: string | null, rows: CharterUnitRow[]) {
+  const store = storage();
+  if (!store) return;
+  clearCharterSnapshots(owner);
+  if (!owner) return;
   try {
-    window.localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(rows));
+    // Unit facts only: employee names stay out of persistent storage.
+    const slim = rows.map((row) => ({ ...row, security_guards: [] }));
+    store.setItem(charterSnapshotKey(owner), JSON.stringify(slim));
   } catch {
     /* storage full or unavailable — cache is optional */
   }
@@ -142,15 +207,16 @@ function buildPageData(rows: CharterUnitRow[]): CharterPageData {
 }
 
 export async function fetchCharterUnits(): Promise<CharterPageData> {
-  const activeIds = await fetchActiveClientIds();
+  watchIdentity();
+  const [activeIds, owner] = await Promise.all([fetchActiveClientIds(), currentOwner()]);
   const { data, error } = await supabase.rpc("get_attendance_charter_units" as never);
   if (error) {
-    const cached = readSnapshot();
+    const cached = readSnapshot(owner);
     if (cached) return buildPageData(visibleClientRows(cached.units, activeIds));
     throw error;
   }
   const payload = (data ?? {}) as { units?: CharterUnitRow[] };
   const rows = visibleClientRows(payload.units ?? [], activeIds);
-  writeSnapshot(rows);
+  writeSnapshot(owner, rows);
   return buildPageData(rows);
 }

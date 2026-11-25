@@ -87,6 +87,7 @@ import { TeamClientsCard } from "@/components/TeamClientsCard";
 import { PayrollWindowPeriodPicker } from "@/components/PayrollWindowPeriodPicker";
 import { MonthYearPicker } from "@/components/MonthYearPicker";
 import { CHARTER_UNITS_QK, fetchCharterUnits, readCharterUnitsSnapshot } from "@/lib/charter-units";
+import { istAddDays, istDate } from "@/lib/dashboard-base";
 import { usePayrollWindowSelection } from "@/lib/use-payroll-window-selection";
 import { payrollPeriodForMonth } from "@/lib/payroll-period";
 import { cn } from "@/lib/utils";
@@ -492,10 +493,9 @@ function DashboardPage() {
     retryDelay: (attempt) => Math.min(1_000 * 2 ** attempt, 8_000),
     queryFn: async () => {
       await supabaseSessionReady();
-      const sixtyDaysOut = new Date();
-      sixtyDaysOut.setDate(sixtyDaysOut.getDate() + 60);
-      const sixtyStr = sixtyDaysOut.toISOString().slice(0, 10);
-      const todayStr = new Date().toISOString().slice(0, 10);
+      // India calendar day: a UTC "today" kept expired contracts active until 05:30 IST.
+      const todayStr = istDate();
+      const sixtyStr = istAddDays(todayStr, 60);
 
       // Counts are essential; lifecycle totals are supplementary. Keep them
       // independent so a slow Attendance/Payroll/Invoice aggregate can never
@@ -715,7 +715,7 @@ function DashboardPage() {
           <MetricTile
             icon={Users}
             label="Field officers"
-            value={operationsOverview?.fieldOfficers ?? 0}
+            value={operationsOverview ? operationsOverview.fieldOfficers : null}
             accent="lime"
             to="/admin/field-sense/team"
             sub="Tap to see all field officers"
@@ -729,10 +729,10 @@ function DashboardPage() {
           <MetricTile
             icon={Radio}
             label="Live on duty today"
-            value={liveOfficerCount}
+            value={operationsLiveQ.data ? liveOfficerCount : null}
             accent="emerald"
             to="/admin/field-sense"
-            sub={`of ${operationsOverview?.fieldOfficers ?? 0} field officers`}
+            sub={operationsOverview ? `of ${operationsOverview.fieldOfficers} field officers` : "Loading…"}
           />
         ),
       });
@@ -743,7 +743,7 @@ function DashboardPage() {
           <MetricTile
             icon={MapPin}
             label="Sites visited today"
-            value={operationsOverview?.sitesVisitedToday ?? 0}
+            value={operationsOverview ? operationsOverview.sitesVisitedToday : null}
             accent="sky"
             to="/admin/field-sense"
             sub="Distinct active client sites"
@@ -902,6 +902,7 @@ function DashboardPage() {
               accent="emerald"
               to="/admin/attendance"
               search={dashboardRegisterSearch(month, year, periodSelection.selectedKey)}
+              unavailable={!lifecycleCounts}
             />
           ),
         });
@@ -925,6 +926,7 @@ function DashboardPage() {
               accent="sky"
               to="/admin/payroll"
               search={dashboardRegisterSearch(month, year, periodSelection.selectedKey)}
+              unavailable={!lifecycleCounts}
             />
           ),
         });
@@ -947,6 +949,7 @@ function DashboardPage() {
               accent="indigo"
               to="/admin/invoice"
               search={dashboardRegisterSearch(month, year, periodSelection.selectedKey)}
+              unavailable={!lifecycleCounts}
             />
           ),
         });
@@ -996,6 +999,8 @@ function DashboardPage() {
     teamLive,
     taskSummary.data,
     caseSummary.data,
+    lifecycleCounts,
+    operationsLiveQ.data,
   ]);
 
   if (permsLoading) {
@@ -1012,7 +1017,8 @@ function DashboardPage() {
   }
 
   if (showPayrollDashboard) {
-    const rc = data?.runCounts;
+    // Lifecycle counts only — the zero placeholder must never paint as real 0s.
+    const rc = lifecycleCounts?.runCounts;
     return (
       <div data-mobile-dashboard className="w-full min-w-0 px-0 py-1 sm:p-6">
         <div className="space-y-4">
@@ -1044,7 +1050,7 @@ function DashboardPage() {
               icon={ClipboardList}
               label="Payroll open"
               sub="Attendance not approved"
-              value={rc?.open ?? 0}
+              value={rc ? rc.open : null}
               accent="rose"
               to="/admin/payroll"
               search={{ dashboard: true, window: periodSelection.selectedKey, month, year, status: "open" }}
@@ -1053,7 +1059,7 @@ function DashboardPage() {
               icon={Wallet}
               label="Payroll ready"
               sub="Awaiting your approval"
-              value={rc?.pending ?? 0}
+              value={rc ? rc.pending : null}
               accent="amber"
               to="/admin/payroll"
               search={{ dashboard: true, window: periodSelection.selectedKey, month, year, status: "ready" }}
@@ -1062,7 +1068,7 @@ function DashboardPage() {
               icon={Sparkles}
               label="Payroll approved"
               sub="Awaiting processing"
-              value={rc?.approved ?? 0}
+              value={rc ? rc.approved : null}
               accent="sky"
               to="/admin/payroll"
               search={{ dashboard: true, window: periodSelection.selectedKey, month, year, status: "approved" }}
@@ -1071,7 +1077,7 @@ function DashboardPage() {
               icon={Receipt}
               label="Payroll processed"
               sub="Done"
-              value={rc?.processed ?? 0}
+              value={rc ? rc.processed : null}
               accent="emerald"
               to="/admin/payroll"
               search={{ dashboard: true, window: periodSelection.selectedKey, month, year, status: "processed" }}
@@ -1272,6 +1278,7 @@ function DashboardPage() {
                 {!hideDeployments && canExplicit("dashboard", "w_fo_mapping") && <OperationsDeployments teamOnly />}
                 {!isLoading &&
                   data &&
+                  lifecycleCounts &&
                   canWidget("readiness") &&
                   (can("attendance") || can("payroll") || can("invoice")) && (
                     <ReadinessCard
@@ -1389,6 +1396,7 @@ function DashboardPage() {
         {opsFocus &&
           !isLoading &&
           data &&
+          lifecycleCounts &&
           canWidget("readiness") &&
           (can("attendance") || can("payroll") || can("invoice")) && (
             <ReadinessCard
@@ -1725,13 +1733,15 @@ function MetricTile({
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
-  value: number;
+  /** null = still loading or unavailable → shows "—", never a false 0. */
+  value: number | null;
   accent?: Accent;
   to: string;
   search?: Record<string, unknown>;
   sub?: string;
 }) {
-  const display = useCountUp(value);
+  const counted = useCountUp(value ?? 0);
+  const display = value == null ? "—" : counted;
   const I = icon;
   return (
     <Shell to={to} search={search} accent={accent}>
@@ -1806,7 +1816,10 @@ function StatusTile({
   to,
   search,
   accent = "emerald",
+  unavailable = false,
 }: {
+  /** True while counts load or failed: every figure shows "—" instead of 0. */
+  unavailable?: boolean;
   middle?: { value: number; label: string };
   icon: React.ComponentType<{ className?: string }>;
   label: string;
@@ -1839,7 +1852,7 @@ function StatusTile({
               cols === 4 ? "text-[18px] sm:text-[20px]" : "text-[22px] sm:text-[24px]",
             )}
           >
-            {approved}
+            {unavailable ? "—" : approved}
           </TileNumber>
         </div>
         <div className="min-w-0">
@@ -1852,7 +1865,7 @@ function StatusTile({
               cols === 4 ? "text-[18px] sm:text-[20px]" : "text-[22px] sm:text-[24px]",
             )}
           >
-            {pending}
+            {unavailable ? "—" : pending}
           </TileNumber>
         </div>
         {middle && (
@@ -1866,7 +1879,7 @@ function StatusTile({
                 cols === 4 ? "text-[18px] sm:text-[20px]" : "text-[22px] sm:text-[24px]",
               )}
             >
-              {middle.value}
+              {unavailable ? "—" : middle.value}
             </TileNumber>
           </div>
         )}
@@ -1881,7 +1894,7 @@ function StatusTile({
                 cols === 4 ? "text-[18px] sm:text-[20px]" : "text-[22px] sm:text-[24px]",
               )}
             >
-              {open}
+              {unavailable ? "—" : open}
             </TileNumber>
           </div>
         )}
@@ -1949,12 +1962,10 @@ function TransportFleetAssetsTiles() {
     refetchOnWindowFocus: false,
     retry: 2,
     queryFn: async () => {
-      const today = new Date();
-      const todayStr = today.toISOString().slice(0, 10);
-      const horizon = new Date(today);
-      horizon.setDate(horizon.getDate() + 30);
-      const horizonStr = horizon.toISOString().slice(0, 10);
-      const monthStart = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
+      // India calendar days (UTC "today" lags until 05:30 IST).
+      const todayStr = istDate();
+      const horizonStr = istAddDays(todayStr, 30);
+      const monthStart = `${todayStr.slice(0, 8)}01`;
 
       const [veh, fuel, ins, puc, props, expenses, loans] = await Promise.all([
         supabase.from("vehicles").select("id", { count: "exact", head: true }),

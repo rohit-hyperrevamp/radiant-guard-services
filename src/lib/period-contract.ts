@@ -16,7 +16,8 @@ export async function fetchPeriodContract<T extends Record<string, unknown>>(
   columns: string,
   client: Client = supabase,
 ): Promise<T | null> {
-  const { data: overlap } = await client
+  // Errors must surface: silently returning null priced a site at ₹0.
+  const { data: overlap, error: overlapErr } = await client
     .from("client_contracts")
     .select(columns)
     .eq("unit_id", unitId)
@@ -32,8 +33,9 @@ export async function fetchPeriodContract<T extends Record<string, unknown>>(
     .order("status", { ascending: true })
     .order("created_at", { ascending: false })
     .limit(1);
+  if (overlapErr) throw overlapErr;
   if (overlap && overlap.length) return overlap[0] as unknown as T;
-  const { data: active } = await client
+  const { data: active, error: activeErr } = await client
     .from("client_contracts")
     .select(columns)
     .eq("unit_id", unitId)
@@ -41,5 +43,6 @@ export async function fetchPeriodContract<T extends Record<string, unknown>>(
     .eq("status", "active")
     .order("start_date", { ascending: false })
     .limit(1);
+  if (activeErr) throw activeErr;
   return (active?.[0] as unknown as T) ?? null;
 }

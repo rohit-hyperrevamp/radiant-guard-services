@@ -45,6 +45,8 @@ import {
   Legend,
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllPages } from "@/lib/supabase-batch";
+import { istDate } from "@/lib/dashboard-base";
 import {
   Select,
   SelectContent,
@@ -159,6 +161,25 @@ const RANGE_LABEL: Record<Range, string> = {
   custom: "Custom",
 };
 
+type AnyQuery = ReturnType<ReturnType<typeof supabase.from>["select"]>;
+
+/**
+ * Page a whole table (ordered by id) past PostgREST's 1,000-row cap — stock
+ * balances, candidates and movement history all exceed it, so totals and
+ * stock value came out too low. Shape matches a Supabase result.
+ */
+async function readAllRows(
+  table: string,
+  columns: string,
+  refine?: (q: AnyQuery) => AnyQuery,
+): Promise<{ data: unknown[]; error: null }> {
+  const data = await fetchAllPages<unknown>((from, to) => {
+    const base = supabase.from(table as never).select(columns) as unknown as AnyQuery;
+    return (refine ? refine(base) : base).order("id", { ascending: true }).range(from, to);
+  });
+  return { data, error: null };
+}
+
 function rangeWindow(
   r: Range,
   cf?: string,
@@ -209,10 +230,9 @@ export function InventoryOwnerDashboard() {
   const scope = useUserBranchScope();
   const role = useCurrentUserRole();
   const [range, setRange] = useState<Range>("this_month");
-  const [customFrom, setCustomFrom] = useState<string>(() =>
-    new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10),
-  );
-  const [customTo, setCustomTo] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  // India calendar dates: toISOString() shifted the month start to the previous day.
+  const [customFrom, setCustomFrom] = useState<string>(() => `${istDate().slice(0, 8)}01`);
+  const [customTo, setCustomTo] = useState<string>(() => istDate());
   const [warehouseFilter, setWarehouseFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [q, setQ] = useState("");
@@ -241,9 +261,7 @@ export function InventoryOwnerDashboard() {
   const balancesQ = useQuery({
     queryKey: ["dash2", "balances"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("inv_stock_balances" as never)
-        .select("location_type,location_id,item_id,size_value,qty");
+      const { data, error } = await readAllRows("inv_stock_balances", "location_type,location_id,item_id,size_value,qty");
       if (error) throw error;
       return (data as unknown as Balance[]) ?? [];
     },
@@ -251,9 +269,7 @@ export function InventoryOwnerDashboard() {
   const itemsQ = useQuery({
     queryKey: ["dash2", "items"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("inv_items" as never)
-        .select("id,item_code,name,default_reorder_level,is_sized,standard_cost,category_id");
+      const { data, error } = await readAllRows("inv_items", "id,item_code,name,default_reorder_level,is_sized,standard_cost,category_id");
       if (error) throw error;
       return (data as unknown as Item[]) ?? [];
     },
@@ -261,7 +277,7 @@ export function InventoryOwnerDashboard() {
   const catsQ = useQuery({
     queryKey: ["dash2", "cats"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("inv_item_categories" as never).select("id,name");
+      const { data, error } = await readAllRows("inv_item_categories", "id,name");
       if (error) throw error;
       return (data as unknown as Category[]) ?? [];
     },
@@ -269,9 +285,7 @@ export function InventoryOwnerDashboard() {
   const sizesQ = useQuery({
     queryKey: ["dash2", "sizes"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("inv_item_sizes" as never)
-        .select("item_id,size_value,reorder_level");
+      const { data, error } = await readAllRows("inv_item_sizes", "item_id,size_value,reorder_level");
       if (error) throw error;
       return (data as unknown as ItemSize[]) ?? [];
     },
@@ -280,9 +294,7 @@ export function InventoryOwnerDashboard() {
     queryKey: ["dash2", "vendors"],
     enabled: !scope.isLoading && !scope.isScoped,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("inv_vendors" as never)
-        .select("id,name,vendor_code,city");
+      const { data, error } = await readAllRows("inv_vendors", "id,name,vendor_code,city");
       if (error) throw error;
       return (data as unknown as Vendor[]) ?? [];
     },
@@ -291,10 +303,7 @@ export function InventoryOwnerDashboard() {
     queryKey: ["dash2", "rate-cards"],
     enabled: !scope.isLoading && !scope.isScoped,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("inv_vendor_rate_cards" as never)
-        .select("vendor_id,item_id,size_value,unit_price")
-        .eq("enabled", true);
+      const { data, error } = await readAllRows("inv_vendor_rate_cards", "vendor_id,item_id,size_value,unit_price", (q) => q.eq("enabled",true));
       if (error) throw error;
       return (data as unknown as RateCard[]) ?? [];
     },
@@ -303,11 +312,7 @@ export function InventoryOwnerDashboard() {
     queryKey: ["dash2", "pos"],
     enabled: !scope.isLoading && !scope.isScoped,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("inv_purchase_orders" as never)
-        .select(
-          "id,po_number,vendor_id,status,po_date,grand_total,destination_warehouse_id,created_at",
-        );
+      const { data, error } = await readAllRows("inv_purchase_orders", "id,po_number,vendor_id,status,po_date,grand_total,destination_warehouse_id,created_at");
       if (error) throw error;
       return (data as unknown as PO[]) ?? [];
     },
@@ -316,9 +321,7 @@ export function InventoryOwnerDashboard() {
     queryKey: ["dash2", "po-lines"],
     enabled: !scope.isLoading && !scope.isScoped,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("inv_po_lines" as never)
-        .select("po_id,item_id,ordered_qty,accepted_qty,line_total,unit_price");
+      const { data, error } = await readAllRows("inv_po_lines", "po_id,item_id,ordered_qty,accepted_qty,line_total,unit_price");
       if (error) throw error;
       return (data as unknown as POLine[]) ?? [];
     },
@@ -326,10 +329,7 @@ export function InventoryOwnerDashboard() {
   const candsQ = useQuery({
     queryKey: ["dash2", "cands"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("candidates")
-        .select("id,full_name,employee_code,role_key,designation_id")
-        .in("status", ["approved", "active"]);
+      const { data, error } = await readAllRows("candidates", "id,full_name,employee_code,role_key,designation_id", (q) => q.in("status",["approved","active"]));
       if (error) throw error;
       return (data as unknown as Cand[]) ?? [];
     },
@@ -337,7 +337,7 @@ export function InventoryOwnerDashboard() {
   const desigQ = useQuery({
     queryKey: ["dash2", "desig"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("designations").select("id,name");
+      const { data, error } = await readAllRows("designations", "id,name");
       if (error) throw error;
       return (data as unknown as Designation[]) ?? [];
     },
@@ -345,7 +345,7 @@ export function InventoryOwnerDashboard() {
   const branchesQ = useQuery({
     queryKey: ["dash2", "branches"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("branches").select("id,name,code");
+      const { data, error } = await readAllRows("branches", "id,name,code");
       if (error) throw error;
       return (data as unknown as Branch[]) ?? [];
     },
@@ -353,9 +353,7 @@ export function InventoryOwnerDashboard() {
   const grnQ = useQuery({
     queryKey: ["dash2", "grns"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("inv_goods_receipts" as never)
-        .select("id,receipt_date,po_id,vendor_id,status,branch_id,created_at");
+      const { data, error } = await readAllRows("inv_goods_receipts", "id,receipt_date,po_id,vendor_id,status,branch_id,created_at");
       if (error) throw error;
       return (data as unknown as GRN[]) ?? [];
     },
@@ -364,9 +362,7 @@ export function InventoryOwnerDashboard() {
     queryKey: ["dash2", "whs"],
     enabled: !scope.isLoading && !scope.isScoped,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("inv_warehouses" as never)
-        .select("id,name,warehouse_code");
+      const { data, error } = await readAllRows("inv_warehouses", "id,name,warehouse_code");
       if (error) throw error;
       return (data as unknown as { id: string; name: string; warehouse_code: string }[]) ?? [];
     },
@@ -374,9 +370,7 @@ export function InventoryOwnerDashboard() {
   const transfersQ = useQuery({
     queryKey: ["dash2", "transfers"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("inv_transfers" as never)
-        .select("id,status,source_type,source_id,destination_type,destination_id,created_at");
+      const { data, error } = await readAllRows("inv_transfers", "id,status,source_type,source_id,destination_type,destination_id,created_at");
       if (error) throw error;
       return (data as unknown as ScopedMovement[]) ?? [];
     },
@@ -384,9 +378,7 @@ export function InventoryOwnerDashboard() {
   const transferLinesQ = useQuery({
     queryKey: ["dash2", "transfer-lines"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("inv_transfer_lines" as never)
-        .select("transfer_id,item_id,size_value,dispatched_qty,received_qty");
+      const { data, error } = await readAllRows("inv_transfer_lines", "transfer_id,item_id,size_value,dispatched_qty,received_qty");
       if (error) throw error;
       return (
         (data as unknown as {
@@ -402,9 +394,7 @@ export function InventoryOwnerDashboard() {
   const issuancesQ = useQuery({
     queryKey: ["dash2", "issuances"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("inv_issuances" as never)
-        .select("id,status,source_type,source_id,destination_type,destination_id,created_at");
+      const { data, error } = await readAllRows("inv_issuances", "id,status,source_type,source_id,destination_type,destination_id,created_at");
       if (error) throw error;
       return (data as unknown as ScopedMovement[]) ?? [];
     },
@@ -412,11 +402,7 @@ export function InventoryOwnerDashboard() {
   const demandsQ = useQuery({
     queryKey: ["dash2", "demands"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("inv_demands" as never)
-        .select(
-          "id,demand_number,status,branch_id,warehouse_id,requester_candidate_id,demand_date,created_at,submitted_at",
-        );
+      const { data, error } = await readAllRows("inv_demands", "id,demand_number,status,branch_id,warehouse_id,requester_candidate_id,demand_date,created_at,submitted_at");
       if (error) throw error;
       return (data as unknown as Demand[]) ?? [];
     },
@@ -424,9 +410,7 @@ export function InventoryOwnerDashboard() {
   const capsQ = useQuery({
     queryKey: ["dash2", "caps"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("inv_caps" as never)
-        .select("scope_type,scope_id,min_value,max_value");
+      const { data, error } = await readAllRows("inv_caps", "scope_type,scope_id,min_value,max_value");
       if (error) throw error;
       return (
         (data as unknown as {
@@ -935,12 +919,13 @@ export function InventoryOwnerDashboard() {
     for (let i = 0; i < days; i++) {
       const d = new Date(w.from);
       d.setDate(w.from.getDate() + i);
-      const k = d.toISOString().slice(0, 10);
+      // Local calendar day (toISOString() would shift IST midnight to the previous day).
+      const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
       buckets.set(k, { date: k, spend: 0, orders: 0 });
     }
     for (const p of pos) {
       if (!inPeriod(p.po_date)) continue;
-      const k = new Date(p.po_date).toISOString().slice(0, 10);
+      const k = String(p.po_date).slice(0, 10);
       const cur = buckets.get(k);
       if (cur) {
         cur.spend += Number(p.grand_total || 0);

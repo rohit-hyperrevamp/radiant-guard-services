@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { logActivity } from "@/lib/activity-log";
+import { confirmAction } from "@/components/ConfirmProvider";
 
 export const Route = createFileRoute("/admin/field-sense/attendance-rules")({
   component: () => (
@@ -172,7 +173,7 @@ function AttendanceRulesPage() {
                     <td className="px-4 py-2 font-medium text-foreground">{r.name}</td>
                     <td className="px-4 py-2">
                       <Select value={p.mode} disabled={!canEdit} onValueChange={(v) => savePolicy.mutate({ ...p, mode: v as Mode })}>
-                        <SelectTrigger className="h-9 w-56"><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="h-9 w-56" aria-label={`Where ${r.name} can mark attendance`}><SelectValue /></SelectTrigger>
                         <SelectContent>
                           {MODES.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
                         </SelectContent>
@@ -185,6 +186,7 @@ function AttendanceRulesPage() {
                         max={5000}
                         defaultValue={p.radius_m}
                         disabled={!canEdit || p.mode === "anywhere"}
+                        aria-label={`Allowed distance in metres for ${r.name}`}
                         className="h-9 w-28"
                         onBlur={(e) => {
                           const v = Math.round(Number(e.target.value));
@@ -196,6 +198,7 @@ function AttendanceRulesPage() {
                     </td>
                     <td className="px-4 py-2">
                       <Switch
+                        aria-label={`Save new site locations for ${r.name}`}
                         checked={p.capture_missing_coords}
                         disabled={!canEdit}
                         onCheckedChange={(v) => savePolicy.mutate({ ...p, capture_missing_coords: v })}
@@ -203,6 +206,7 @@ function AttendanceRulesPage() {
                     </td>
                     <td className="px-4 py-2">
                       <Switch
+                        aria-label={`Face photo required for ${r.name}`}
                         checked={p.require_selfie}
                         disabled={!canEdit}
                         onCheckedChange={(v) => savePolicy.mutate({ ...p, require_selfie: v })}
@@ -282,7 +286,22 @@ function AttendanceRulesPage() {
                     </td>
                     <td className="px-4 py-2">
                       {canEdit && (
-                        <Button variant="ghost" size="icon" aria-label="Remove person rule" onClick={() => deleteOverride.mutate(o.candidate_id)}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Remove rule for ${o.cand?.full_name ?? "this person"}`}
+                          disabled={deleteOverride.isPending}
+                          onClick={async () => {
+                            const ok = await confirmAction({
+                              title: "Remove this person rule?",
+                              description: `${o.cand?.full_name ?? "This person"} will follow their role rule again.`,
+                              confirmText: "Remove rule",
+                              cancelText: "Keep rule",
+                              destructive: true,
+                            });
+                            if (ok) deleteOverride.mutate(o.candidate_id);
+                          }}
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       )}

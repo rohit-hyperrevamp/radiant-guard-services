@@ -32,7 +32,12 @@ export function ImpersonationBanner() {
         disabled={busy}
         onClick={async () => {
           setBusy(true);
-          await endImpersonation();
+          try {
+            await endImpersonation();
+          } catch (e) {
+            console.error("[ViewAs] could not return to own view", e);
+            setBusy(false);
+          }
         }}
         className="inline-flex items-center gap-1 rounded-full bg-background px-3 py-1 text-xs font-semibold text-foreground"
       >
@@ -122,7 +127,7 @@ function ViewAsDialog({ onClose }: { onClose: () => void }) {
         </p>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Name, employee ID or mobile" className="pl-9" />
+          <Input autoFocus aria-label="Search employees" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Name, employee ID or mobile" className="pl-9" />
         </div>
         <div className="max-h-[50vh] divide-y divide-border overflow-y-auto rounded-lg border border-border">
           {loading && rows.length === 0 && <div className="p-4 text-sm text-muted-foreground">Searching…</div>}

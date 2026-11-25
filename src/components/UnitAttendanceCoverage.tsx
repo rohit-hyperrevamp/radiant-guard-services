@@ -3,17 +3,19 @@ import { FieldOfficerOrgChart } from "@/components/FieldOfficerOrgChart";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
+import { istDate } from "@/lib/dashboard-base";
 import { Input } from "@/components/ui/input";
 import { buildPayrollWindowOptions, fetchPayrollWindowsByUnit, formatPayrollPeriod, payrollAnchorForDate, payrollPeriodForMonth, shiftPayrollAnchor } from "@/lib/payroll-period";
 
 type Row = { unit_id: string; unit_code: string; unit_name: string; days_marked: number; staff_marked: number };
 
-const iso = (d: Date) => d.toISOString().slice(0, 10);
+/** India calendar date: toISOString() is UTC and shifted local dates back a day. */
+const iso = (d: Date) => istDate(d);
 
 /** Units with an active contract that the viewer can see, split by whether any attendance exists in the range. */
 export function UnitAttendanceCoverage() {
   const today = new Date();
-  const [from, setFrom] = useState(iso(new Date(today.getFullYear(), today.getMonth(), 1)));
+  const [from, setFrom] = useState(() => `${iso(today).slice(0, 8)}01`);
   const [to, setTo] = useState(iso(today));
   const [show, setShow] = useState<"all" | "none" | "with">("all");
   const [page, setPage] = useState(0);

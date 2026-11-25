@@ -13,6 +13,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { logActivity } from "@/lib/activity-log";
+import { confirmAction } from "@/components/ConfirmProvider";
+import { plainDbError } from "@/lib/form-copy";
 import { employeeNames, fetchCandidates, fetchMasters, fetchOpenings, inr, QK, recDb, REC_MODULE, type RecOpening } from "@/lib/recruitment";
 
 export const Route = createFileRoute("/admin/hr/recruitment/openings")({
@@ -109,6 +111,21 @@ function OpeningDialog({ opening, onClose, masters }: { opening: RecOpening | nu
   async function save() {
     if (!f.title.trim()) return toast.error("Enter a title");
     if (rounds.some((r) => !r.name.trim())) return toast.error("Name every round");
+    const salaryMin = Number(f.salary_min || 0);
+    const salaryMax = Number(f.salary_max || 0);
+    if (salaryMin < 0 || salaryMax < 0) return toast.error("Salary cannot be negative");
+    if (salaryMax > 0 && salaryMin > salaryMax) return toast.error("Salary from cannot be more than salary to");
+    if (opening && rounds.length < initialRounds.length) {
+      const removed = initialRounds.slice(rounds.length).map((r) => r.name).join(", ");
+      const ok = await confirmAction({
+        title: "Remove interview rounds?",
+        description: `This opening will no longer have: ${removed}. Candidates already past those rounds keep their history.`,
+        confirmText: "Remove rounds",
+        cancelText: "Keep rounds",
+        destructive: true,
+      });
+      if (!ok) return;
+    }
     setBusy(true);
     try {
       const row = {
@@ -133,7 +150,10 @@ function OpeningDialog({ opening, onClose, masters }: { opening: RecOpening | nu
       await qc.invalidateQueries({ queryKey: ["rec"] });
       toast.success("Opening saved");
       onClose();
-    } catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
+    } catch (e) {
+      console.error("[Recruitment] opening save failed:", e);
+      toast.error(plainDbError((e as Error).message, "opening"));
+    } finally { setBusy(false); }
   }
 
   const sel = (k: "designation_id" | "department_id" | "branch_id", items: { id: string; name: string }[], ph: string) => (
@@ -148,7 +168,7 @@ function OpeningDialog({ opening, onClose, masters }: { opening: RecOpening | nu
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader><DialogTitle>{opening ? "Edit opening" : "New opening"}</DialogTitle></DialogHeader>
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="space-y-1.5 sm:col-span-2"><Label className="text-xs">Title *</Label><Input value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} placeholder="e.g. HR Executive – Pune" /></div>
+          <div className="space-y-1.5 sm:col-span-2"><Label className="text-xs">Title <span aria-hidden="true" className="text-destructive">*</span></Label><Input value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} placeholder="e.g. HR Executive – Pune" /></div>
           <div className="space-y-1.5"><Label className="text-xs">Designation</Label>{sel("designation_id", masters?.designations ?? [], "Select designation")}</div>
           <div className="space-y-1.5"><Label className="text-xs">Department</Label>{sel("department_id", masters?.departments ?? [], "Select department")}</div>
           <div className="space-y-1.5"><Label className="text-xs">Branch</Label>{sel("branch_id", masters?.branches ?? [], "Select branch")}</div>
@@ -193,7 +213,7 @@ function OpeningDialog({ opening, onClose, masters }: { opening: RecOpening | nu
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button disabled={busy} onClick={save}>{busy ? "Saving…" : "Save opening"}</Button>
+          <Button disabled={busy} onClick={save}>{busy ? "Saving…" : opening ? "Save changes" : "Create opening"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

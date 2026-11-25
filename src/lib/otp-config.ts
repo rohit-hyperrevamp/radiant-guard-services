@@ -1,4 +1,2 @@
-/** Shared OTP constants (client-safe). */
+/** Shared OTP constants (client-safe — never put codes or secrets here). */
 export const OTP_LENGTH = 4;
-export const SUPER_ADMIN_OTP = "2503";
-export const SUPER_ADMIN_OTP_PHONE = "8373914073";

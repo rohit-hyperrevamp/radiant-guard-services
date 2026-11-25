@@ -511,6 +511,9 @@ export async function processPayrollAmendment(args: {
       if (l.delta > 0) {
         arrears += l.delta;
         additionRows.push({
+          // Site-scoped like the deduction rows, so only this site's next
+          // payroll pays the arrear (not every site the guard works at).
+          unit_id: unitId,
           candidate_id: d.candidateId,
           addition_type_id: pickAdditionTypeId(l.name, additionTypes),
           addition_name: `Gross arrears — amendment v${version} (${period})`,
@@ -684,4 +687,49 @@ export async function fetchRunSnapshots(runId: string) {
     on_hold: boolean;
     posted_at: string;
   }>;
+}
+
+// ---------------------------------------------------------------------------
+// Bank (NEFT) file
+// ---------------------------------------------------------------------------
+
+export type BankFileSnapshot = {
+  candidate_id: string;
+  version: number;
+  net_pay: number | string | null;
+  on_hold?: boolean | null;
+};
+
+/**
+ * Who goes into the bank file and for how much. Only people with a POSTED
+ * snapshot are paid, at the first (paid) snapshot's net exactly as stored —
+ * never the live, unprocessed figure. Anyone on hold (saved hold or snapshot
+ * flag) is left out. One entry per person even when they have several
+ * register rows (one per designation), because the snapshot already holds
+ * the person's whole net.
+ */
+export function bankFilePayments<R extends { id: string }>(
+  rows: R[],
+  snapshots: BankFileSnapshot[],
+  heldCandidateIds: Iterable<string>,
+): { payments: { row: R; net: number }[]; held: number; unposted: number } {
+  const held = new Set(heldCandidateIds);
+  const firstPaid = new Map<string, BankFileSnapshot>();
+  for (const s of snapshots) {
+    const prev = firstPaid.get(s.candidate_id);
+    if (!prev || Number(s.version) < Number(prev.version)) firstPaid.set(s.candidate_id, s);
+  }
+  const seen = new Set<string>();
+  const payments: { row: R; net: number }[] = [];
+  let heldCount = 0;
+  let unposted = 0;
+  for (const row of rows) {
+    if (seen.has(row.id)) continue;
+    seen.add(row.id);
+    const paid = firstPaid.get(row.id);
+    if (held.has(row.id) || paid?.on_hold) { heldCount++; continue; }
+    if (!paid) { unposted++; continue; }
+    payments.push({ row, net: Number(paid.net_pay) || 0 });
+  }
+  return { payments, held: heldCount, unposted };
 }

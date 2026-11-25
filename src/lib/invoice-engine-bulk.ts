@@ -49,7 +49,11 @@ export function choosePeriodContract(contracts: Row[], start: string, end: strin
   return contracts.filter((c) => c.status === "active").sort((a, b) => s(b.start_date).localeCompare(s(a.start_date)) || s(b.created_at).localeCompare(s(a.created_at)))[0] ?? null;
 }
 
-/** The invoice page's WO-as-Present / exact-day-rate flags: latest active contract overlapping the period. */
+/**
+ * Legacy flag pick (latest *active* contract overlapping the period). Invoices no
+ * longer use it — their WO-as-Present / exact-day-rate flags come from the period
+ * contract (choosePeriodContract) — but payroll-engine still calls it.
+ */
 export function chooseFlagContract(contracts: Row[], start: string, end: string): Row | null {
   return contracts
     .filter((c) => c.status === "active" && s(c.start_date) <= end && (!c.end_date || s(c.end_date) >= start))
@@ -273,7 +277,8 @@ export async function loadInvoiceUnitsBulk(periods: Map<string, UnitPeriod>, db 
     ).filter((id) => !have.has(id));
     const leavers = visible.map((id) => strip(candById.get(id)!));
     const rosterIds = new Set([...primary, ...secondary, ...leavers].map((c) => c.id));
-    const flags = chooseFlagContract(contractsByUnit.get(unitId) ?? [], p.start, p.end);
+    // WO-as-Present / exact-day-rate from the period contract that prices this invoice.
+    const flags = contract;
     const ptStateRaw = (unit.pt_state as string | null) || null;
     const customer = { name: (unit.customer_name as string | null) ?? null, invoice_split: unit.customer_invoice_split };
     const data: InvoiceUnitData = {

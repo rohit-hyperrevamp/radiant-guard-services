@@ -261,21 +261,16 @@ function PayrollUnitPage() {
       };
     },
   });
-  // Contract switch: count Weekly Off (WO) as Present days for this period.
-  const { data: contractFlags } = useQuery({
+  // Contract switches (WO as Present, exact day rate) come from this period's
+  // contract — the same one that prices the invoice — so a later renewal never
+  // changes an old invoice.
+  const { data: contractFlags, error: contractFlagsError, refetch: refetchContractFlags } = useQuery({
     queryKey: ["invoice-wo-as-present", unitId, start, end],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("client_contracts")
-        .select("wo_as_present, exact_day_rate" as never)
-        .eq("unit_id", unitId)
-        .eq("record_type", "client")
-        .eq("status", "active")
-        .lte("start_date", end)
-        .or(`end_date.is.null,end_date.gte.${start}`)
-        .order("start_date", { ascending: false })
-        .limit(1);
-      const row = (data ?? [])[0] as { wo_as_present?: boolean; exact_day_rate?: boolean } | undefined;
+      await supabaseSessionReady();
+      const row = await fetchPeriodContract<{ wo_as_present?: boolean | null; exact_day_rate?: boolean | null }>(
+        unitId, start, end, "wo_as_present, exact_day_rate",
+      );
       return { woAsPresent: Boolean(row?.wo_as_present), exactDayRate: Boolean(row?.exact_day_rate) };
     },
   });
@@ -418,13 +413,14 @@ function PayrollUnitPage() {
   const epfCapEnabled =
     (unit as { epf_cap_enabled?: boolean | null } | null | undefined)?.epf_cap_enabled ?? true;
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["invoice-compute", unitId, start, end, ptState, ptPincode, epfCapEnabled, (phConfig?.dates.length ?? 0), (phConfig?.multiplier ?? 0), woAsPresent, (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0)],
+  const { data, isLoading, error: computeError, refetch: refetchInvoiceQuery, isFetching: invoiceFetching } = useQuery({
+    queryKey: ["invoice-compute", unitId, start, end, ptState, ptPincode, epfCapEnabled, (phConfig?.dates.length ?? 0), (phConfig?.multiplier ?? 0), woAsPresent, exactDayRate, (ptSlabs?.length ?? 0), (pincodeRanges?.length ?? 0), (lwfRows?.length ?? 0)],
     // Re-read saved attendance on opening, returning from another tab, or reconnecting.
     ...invoiceQueryFreshness,
     // Wait for `unit` (PT state / pincode / EPF cap) before computing, else the
     // first render is wrong/zero until a manual refresh.
-    enabled: unit !== undefined && !!ptSlabs && !!pincodeRanges && !!lwfRows,
+    // Contract flags too, so the first render never prices with default flags.
+    enabled: unit !== undefined && contractFlags !== undefined && !!ptSlabs && !!pincodeRanges && !!lwfRows,
     queryFn: async () => {
       await supabaseSessionReady();
       // Shared invoice engine: the dashboard runs this same calculation.
@@ -433,6 +429,11 @@ function PayrollUnitPage() {
       return computeInvoiceUnit(source, globals);
     },
   });
+  // The contract-flags read gates the calculation; if it fails the compute
+  // query never runs, so surface its error too (never show a silent ₹0).
+  const error = computeError ?? contractFlagsError ?? null;
+  const refetchInvoice = () =>
+    contractFlagsError ? refetchContractFlags() : refetchInvoiceQuery();
 
 
 
@@ -517,7 +518,7 @@ function PayrollUnitPage() {
       { projectedTotal: 0, actualTotal: 0, tDays: 0, payrollDays: 0, otHours: 0 },
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, billingMode, invoiceSplit]);
+  }, [rows, billingMode, invoiceSplit, exactDayRate, periodDates, unit?.code, unit?.customer_name]);
 
   /** One row per designation and billing unit, preserving each priced line's quantity. */
   const designationRows = useMemo(() => {
@@ -564,7 +565,7 @@ function PayrollUnitPage() {
     }
     return Array.from(map.values()).sort((a, b) => a.designation.localeCompare(b.designation));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, billingMode, invoiceSplit]);
+  }, [rows, billingMode, invoiceSplit, exactDayRate, periodDates, unit?.code, unit?.customer_name]);
 
 
   const GST_RATE = gstEnabled ? 18 : 0;
@@ -725,7 +726,7 @@ function PayrollUnitPage() {
       grandTotal: roundedGrandTotal,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, invoiceSplit, billingMode, orgSettings, supplierBranch, unit, unitState, activeExtras, billedTotal, taxableValue, cgstAmount, sgstAmount, igstAmount, isIntraState, gstEnabled, roundingOff, roundedGrandTotal, start, end, finalInvoice]);
+  }, [rows, invoiceSplit, billingMode, exactDayRate, periodDates, orgSettings, supplierBranch, unit, unitState, activeExtras, billedTotal, taxableValue, cgstAmount, sgstAmount, igstAmount, isIntraState, gstEnabled, roundingOff, roundedGrandTotal, start, end, finalInvoice, splitActive, activePartLabel]);
 
 
   /**
@@ -734,6 +735,10 @@ function PayrollUnitPage() {
    * roster, contract rate card and approved attendance for this period.
    */
   const exportMisFormat = async () => {
+    if (error || !data) {
+      toast.error("The invoice could not be calculated. Retry before exporting.");
+      return;
+    }
     const dmy = (iso: string | null | undefined) => {
       const s = String(iso ?? "").slice(0, 10);
       if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return "";
@@ -870,6 +875,10 @@ function PayrollUnitPage() {
 
   const exportTallyBilling = async () => {
     if (!unit) return;
+    if (error || !data) {
+      toast.error("The invoice could not be calculated. Retry before exporting.");
+      return;
+    }
     const { data: contracts } = await supabase
       .from("client_contracts")
       .select("service_type_id")
@@ -917,6 +926,10 @@ function PayrollUnitPage() {
         serviceTypeName,
         lines,
         gstOption,
+        // Same GST type, extra charges and rounded total as the printed invoice.
+        intraState: isIntraState,
+        extraCharges: activeExtras.map((c) => ({ description: c.description, amount: c.amount })),
+        grandTotal: roundedGrandTotal,
       }),
     );
   };
@@ -1066,7 +1079,7 @@ function PayrollUnitPage() {
           />
           {sheet?.tally_invoice_path && (
             <Button variant="outline" size="sm" onClick={() => void viewTallyInvoice()}>
-              <Eye className="mr-1.5 h-4 w-4" /> View Tally Invoice
+              <Eye className="mr-1.5 h-4 w-4" /> View Tally invoice
             </Button>
           )}
           {canUploadTallyInvoice && !sheet?.tally_invoice_path && (
@@ -1077,26 +1090,40 @@ function PayrollUnitPage() {
               onClick={() => tallyInvoiceInputRef.current?.click()}
             >
               {uploadingTallyInvoice ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Upload className="mr-1.5 h-4 w-4" />}
-              Upload Tally Invoice
+              Upload Tally invoice
             </Button>
           )}
           {canFinaliseInvoice && !finalInvoice && (
-            <Button size="sm" disabled={sheet?.status !== "approved"} onClick={() => setFinalDialogOpen(true)}>
-              <FileCheck2 className="mr-1.5 h-4 w-4" /> Generate Final Invoice
+            <Button size="sm" disabled={sheet?.status !== "approved" || !!error || !data} onClick={() => setFinalDialogOpen(true)}>
+              <FileCheck2 className="mr-1.5 h-4 w-4" /> Generate final invoice
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={() => void exportTallyBilling()}>
-            <Download className="mr-1.5 h-4 w-4" /> Download Tally Format
+          <Button variant="outline" size="sm" disabled={!!error || !data} onClick={() => void exportTallyBilling()}>
+            <Download className="mr-1.5 h-4 w-4" /> Download Tally format
           </Button>
           {misApplicable && (
-            <Button variant="outline" size="sm" onClick={exportMisFormat}>
-              <Download className="mr-1.5 h-4 w-4" /> MIS Format
+            <Button variant="outline" size="sm" disabled={!!error || !data} onClick={() => void exportMisFormat()}>
+              <Download className="mr-1.5 h-4 w-4" /> MIS format
             </Button>
           )}
         </div>
       </div>
 
 
+
+      {error && (
+        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+          <div>
+            <div className="font-semibold">This invoice could not be calculated</div>
+            <div className="mt-0.5 text-xs">
+              {error instanceof Error ? error.message : "Contract, rate or attendance data failed to load."} Amounts are hidden so a wrong invoice is never shown.
+            </div>
+          </div>
+          <Button size="sm" variant="outline" disabled={invoiceFetching} onClick={() => void refetchInvoice()}>
+            {invoiceFetching && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />} Retry
+          </Button>
+        </div>
+      )}
 
       {splitActive && (
         <div className="rounded-3xl border border-border/70 bg-card p-4 shadow-sm">
@@ -1179,8 +1206,9 @@ function PayrollUnitPage() {
           )}
         </div>
 
+        {!error && (<>
         <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
-          <Stat label="Days billed" value={String(Math.round(totals.tDays * 100) / 100)} />
+          <Stat label="Days billed" value={formatDutyQty(totals.tDays)} />
           <Stat label="Payroll days (sum)" value={String(Math.round(totals.payrollDays * 100) / 100)} />
           <Stat label="Contracted invoice" value={fmtINR(totals.projectedTotal)} />
           <Stat label="Actual invoice" value={fmtINR(totals.actualTotal)} tone="emerald" />
@@ -1197,8 +1225,11 @@ function PayrollUnitPage() {
             <Stat label={`SGST @ ${GST_RATE / 2}%`} value={fmtINR(sgstAmount)} />
           </> : <Stat label={`IGST @ ${GST_RATE}%`} value={fmtINR(igstAmount)} />)}
           {gstEnabled && <Stat label={`Total GST @ ${GST_RATE}%`} value={fmtINR(gstAmount)} />}
-          <Stat label="Invoice grand total" value={fmtINR(grandTotal)} tone="emerald" />
+          {roundingOff !== 0 && <Stat label="Round off" value={fmtINR(roundingOff)} />}
+          {/* Same rupee-rounded figure the print and the saved final invoice use. */}
+          <Stat label="Invoice grand total" value={fmtINR(roundedGrandTotal)} tone="emerald" />
         </div>
+        </>)}
       </div>
 
       <div className="overflow-hidden rounded-3xl border border-border/70 bg-card shadow-sm">
@@ -1261,7 +1292,7 @@ function PayrollUnitPage() {
         designationSubtotal={r2(totals.actualTotal)}
       />
 
-      {invoiceSheetData && <TaxInvoiceSheet data={invoiceSheetData} />}
+      {invoiceSheetData && !error && <TaxInvoiceSheet data={invoiceSheetData} />}
 
       <FinalInvoiceDialog
         open={finalDialogOpen}

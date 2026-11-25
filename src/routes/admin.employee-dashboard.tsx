@@ -1,6 +1,6 @@
 import { TileNumber } from "@/components/TileNumber";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Building2,
@@ -30,6 +30,13 @@ import { MarkAttendanceCard } from "@/components/MarkAttendanceCard";
 import { DashboardShell } from "@/components/LiveFeed";
 import { TasksSummaryTile, useTaskSummary } from "@/components/TasksSummaryTile";
 import { MyDocumentFollowup } from "@/components/recruitment/MyDocumentFollowup";
+import {
+  istMonthRange,
+  pickSelfEmployee,
+  summarizeMyAttendance,
+  type AttendanceCodeMeta,
+} from "@/lib/dashboard-base";
+import { useHasSupabaseSession } from "@/lib/supabase-ready";
 
 export const Route = createFileRoute("/admin/employee-dashboard")({
   head: () => ({
@@ -66,6 +73,8 @@ type Me = {
   date_of_birth: string | null;
   approved_at: string | null;
   created_at: string | null;
+  updated_at?: string | null;
+  is_enabled?: boolean | null;
 };
 
 type Teammate = {
@@ -167,19 +176,27 @@ function EmployeeDashboard() {
   const { user } = useAuth();
   const phone = user?.phone?.replace(/\D/g, "").slice(-10) ?? "";
 
+  const sessionReady = useHasSupabaseSession();
+  // Every hook runs before the early returns below: a hook after them changed
+  // the hook count between the loading and loaded renders (React #310).
+  const taskSummary = useTaskSummary();
+
   const meQ = useQuery({
     queryKey: ["me-emp", phone],
-    enabled: !!phone,
+    enabled: !!phone && sessionReady,
     queryFn: async () => {
+      // Rehires keep two live rows on one mobile; pick ours instead of
+      // letting `.maybeSingle()` throw.
       const { data, error } = await supabase
         .from("candidates")
         .select(
-          "id,full_name,employee_code,photo_url,mobile,email,role_key,status,unit_id,designation_id,reports_to,date_of_birth,approved_at,created_at",
+          "id,full_name,employee_code,photo_url,mobile,email,role_key,status,unit_id,designation_id,reports_to,date_of_birth,approved_at,created_at,updated_at,is_enabled",
         )
-        .eq("mobile", phone).neq("status", "inactive")
-        .maybeSingle();
+        .eq("mobile", phone)
+        .neq("status", "inactive")
+        .limit(10);
       if (error) throw error;
-      return (data as unknown as Me) ?? null;
+      return pickSelfEmployee((data as unknown as Me[]) ?? []);
     },
   });
   const me = meQ.data;
@@ -230,14 +247,34 @@ function EmployeeDashboard() {
   });
   const unit = lookupsQ.data?.unit ?? null;
 
-  const monthStart = useMemo(() => {
-    const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+  // India calendar month, re-checked so a screen left open rolls over.
+  const [monthRange, setMonthRange] = useState(() => istMonthRange());
+  useEffect(() => {
+    const refresh = () => {
+      const next = istMonthRange();
+      setMonthRange((prev) => (prev.start === next.start ? prev : next));
+    };
+    const timer = window.setInterval(refresh, 60_000);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", refresh);
+    };
   }, []);
-  const monthEnd = useMemo(() => {
-    const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
-  }, []);
+  const monthStart = monthRange.start;
+  const monthEnd = monthRange.end;
+  const codesQ = useQuery({
+    queryKey: ["attendance-codes-meta"],
+    enabled: sessionReady,
+    staleTime: 30 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("attendance_codes")
+        .select("code,counts_as_present,is_leave,is_paid,day_value");
+      if (error) throw error;
+      return (data as unknown as AttendanceCodeMeta[]) ?? [];
+    },
+  });
   const attQ = useQuery({
     queryKey: ["me-attendance", me?.id, monthStart],
     enabled: !!me?.id,
@@ -252,21 +289,10 @@ function EmployeeDashboard() {
       return (data as unknown as { code: string; ot_hours: number; entry_date: string }[]) ?? [];
     },
   });
-  const attStats = useMemo(() => {
-    const rows = attQ.data ?? [];
-    let present = 0,
-      absent = 0,
-      leave = 0,
-      ot = 0;
-    for (const r of rows) {
-      const c = (r.code || "").toUpperCase();
-      if (c === "A") absent++;
-      else if (c === "L" || c === "LV") leave++;
-      else if (c) present++;
-      ot += Number(r.ot_hours || 0);
-    }
-    return { present, absent, leave, ot, total: rows.length };
-  }, [attQ.data]);
+  const attStats = useMemo(
+    () => summarizeMyAttendance(attQ.data ?? [], codesQ.data),
+    [attQ.data, codesQ.data],
+  );
 
   const myUnitsQ = useQuery({
     queryKey: ["me-assigned-units-v3", me?.id],
@@ -500,11 +526,18 @@ function EmployeeDashboard() {
     return list.sort((a, b) => a.days - b.days);
   }, [team, HORIZON]);
 
-  if (meQ.isLoading) return <DashboardSkeleton />;
+  if (phone && (!sessionReady || meQ.isPending)) return <DashboardSkeleton />;
+  if (meQ.isError)
+    return (
+      <div className="p-4 text-sm text-muted-foreground">
+        Your profile could not be loaded. Check your connection and refresh the page.
+      </div>
+    );
   if (!me)
     return (
       <div className="p-4 text-sm text-muted-foreground">
-        No employee profile found for this phone.
+        No employee profile is linked to this mobile number. Ask HR to check the mobile on your
+        employee record.
       </div>
     );
 
@@ -522,7 +555,7 @@ function EmployeeDashboard() {
         Icon={Cake}
         accent="rose"
         eyebrow="This year"
-        title="Upcoming Birthdays"
+        title="Upcoming birthdays"
         count={birthdays.length}
       >
         {birthdays.length === 0 ? (
@@ -568,7 +601,7 @@ function EmployeeDashboard() {
         Icon={PartyPopper}
         accent="amber"
         eyebrow="This year"
-        title="Work Anniversaries"
+        title="Work anniversaries"
         count={anniversaries.length}
       >
         {anniversaries.length === 0 ? (
@@ -613,8 +646,6 @@ function EmployeeDashboard() {
     </div>
   );
 
-  const taskSummary = useTaskSummary();
-
   return (
     <DashboardShell rightExtras={insights} fixedRightRail>
       <div className="space-y-4">
@@ -643,7 +674,7 @@ function EmployeeDashboard() {
           <MyDocumentFollowup />
           <div className="grid grid-cols-3 gap-3 sm:gap-4">
             <HeroStat label="Present" value={attStats.present} icon={ClipboardCheck} tone="mint" />
-            <HeroStat label="ED hrs" value={attStats.ot} icon={CalendarDays} tone="blue" />
+            <HeroStat label="ED days" value={attStats.edDays} icon={CalendarDays} tone="blue" />
             <HeroStat
               label="Uniform"
               value={issQ.data?.total ?? 0}
@@ -757,7 +788,7 @@ function EmployeeDashboard() {
               <div className="rounded-2xl bg-[rgb(var(--tint-emerald))] p-3">
                 <dt className="text-[10px] uppercase text-muted-foreground">Extra duty</dt>
                 <dd className="mt-1 font-semibold tabular-nums text-foreground">
-                  {attStats.ot} hrs
+                  {attStats.edDays} day{attStats.edDays === 1 ? "" : "s"}
                 </dd>
               </div>
               <div className="rounded-2xl bg-[rgb(var(--tint-amber))] p-3">
@@ -790,7 +821,7 @@ function EmployeeDashboard() {
               </div>
             ) : myUnits.length === 0 ? (
               <div className="rounded-2xl bg-muted/60 p-6 text-center text-sm text-muted-foreground">
-                No unit assigned yet.
+                No unit assigned yet. Ask your field officer to map you to a site.
               </div>
             ) : (
               <ul className="space-y-2">

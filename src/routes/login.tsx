@@ -14,6 +14,7 @@ import {
   signInWithBiometric,
 } from "@/lib/biometric";
 import { markNativeAppSessionUnlocked } from "@/lib/native-app-lock";
+import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/radiant-logo-v2.png";
 import loginBg from "@/assets/login-bg.jpg";
 
@@ -74,6 +75,18 @@ function LoginPage() {
   const [revealing, setRevealing] = useState(false);
   const [bioAvailable, setBioAvailable] = useState(false);
   const [bioEnabled, setBioEnabled] = useState(false);
+  // Face ID unlocks an existing session on this device; it cannot start a new
+  // one. After Log out (or an expired session) only OTP can sign in.
+  const [hasDeviceSession, setHasDeviceSession] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    void supabase.auth.getSession().then(({ data }) => {
+      if (alive) setHasDeviceSession(!!data.session?.user);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
   const [bioBusy, setBioBusy] = useState(false);
   const [splashDone, setSplashDone] = useState(false);
   const [splashGone, setSplashGone] = useState(false);
@@ -158,11 +171,10 @@ function LoginPage() {
       // user can tap Resend instead of bouncing back and forth.
       if (!isResend && !movedToOtp) setStep("phone");
       if (movedToOtp) setResendIn(0);
-      // MSG91 blocks networks after repeated sends; the registered-number
-      // fallback (last four digits) still signs in, so point users to it.
+      // MSG91 blocks networks after repeated sends — suggest switching network.
       const shown =
         movedToOtp && /ip\s*block|blocked/i.test(message)
-          ? "The SMS service blocked this network. Enter the last 4 digits of your mobile number as the code to sign in."
+          ? "The SMS service has temporarily blocked this network. Switch to mobile data or another Wi‑Fi and tap Resend."
           : message;
       setError(shown);
       toast.error(shown);
@@ -177,16 +189,15 @@ function LoginPage() {
     verifyInFlightRef.current = true;
     setVerifying(true);
     try {
-      // Last-four fallback is checked by the server; real SMS codes are
-      // verified by the MSG91 widget and confirmed server-side by token.
-      const isLastFour = code === phone.slice(-4);
-      if (otpMode === "sms" && !otpRequestId && !isLastFour) {
+      // Real SMS codes are verified by the MSG91 widget and re-verified on the
+      // server (bound to this phone), which then issues the session.
+      if (otpMode === "sms" && !otpRequestId) {
         throw new Error("Please tap Resend to get a fresh code.");
       }
-      const useWidget = otpMode === "sms" && !!otpRequestId && !isLastFour;
+      const useWidget = otpMode === "sms" && !!otpRequestId;
       const accessToken = useWidget ? await verifyWidgetOtp(code, otpRequestId) : undefined;
-      await checkOtp({ data: { phone, otp: code, accessToken } });
-      await login(`+91${phone}`);
+      const tokens = await checkOtp({ data: { phone, otp: code, accessToken } });
+      await login(`+91${phone}`, tokens);
       markNativeAppSessionUnlocked();
       toast.success("Signed in");
       // Offer to enable Face ID on first successful sign-in on a device.
@@ -449,7 +460,7 @@ function LoginPage() {
                       )}
                     </Button>
 
-                    {bioAvailable && bioEnabled && (
+                    {bioAvailable && bioEnabled && hasDeviceSession && (
                       <button
                         type="button"
                         onClick={handleBiometricLogin}

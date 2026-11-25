@@ -6,6 +6,7 @@ import { RecordViewButton } from "@/components/RecordViewButton";
 import { TrendingUp, Download, Edit2, Plus, Search, Trash2, ChevronLeft, ChevronsUpDown, Check } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllPages, fetchInChunks } from "@/lib/supabase-batch";
 import { logActivity } from "@/lib/activity-log";
 import { cn } from "@/lib/utils";
 import { downloadCsv } from "@/lib/csv-export";
@@ -126,17 +127,46 @@ function AdditionList() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const types = useAdditionTypes();
-  const emps = useEmployees();
 
+  // Fully paged (the list stopped at 1,000 additions before).
   const { data: items = [] } = useQuery({
     queryKey: QK_ADD,
-    queryFn: async (): Promise<Addition[]> => {
-      const { data, error } = await supabase
-        .from("additions" as never)
-        .select("id,candidate_id,addition_type_id,addition_date,addition_name,calculation_type,amount,installments,description,status")
-        .order("addition_date", { ascending: false });
-      if (error) throw error;
-      return (data as unknown) as Addition[];
+    queryFn: async (): Promise<Addition[]> =>
+      fetchAllPages<Addition>((from, to) =>
+        supabase
+          .from("additions" as never)
+          .select("id,candidate_id,addition_type_id,addition_date,addition_name,calculation_type,amount,installments,description,status")
+          .order("addition_date", { ascending: false })
+          .order("id", { ascending: true })
+          .range(from, to),
+      ),
+  });
+
+  // Only the people named in the list — not the whole ~29k directory, which
+  // took ~29 sequential requests and made this page take 14 s to open.
+  const listedIds = useMemo(
+    () => Array.from(new Set(items.map((i) => i.candidate_id).filter(Boolean))).sort(),
+    [items],
+  );
+  const emps = useQuery({
+    queryKey: ["admin", "additions-list-employees", listedIds],
+    enabled: listedIds.length > 0,
+    staleTime: 5 * 60_000,
+    queryFn: async (): Promise<Emp[]> => {
+      const rows = await fetchInChunks<Record<string, unknown>>(listedIds, (chunk, from, to) =>
+        supabase
+          .from("candidates")
+          .select("id,full_name,employee_code,mobile")
+          .in("id", chunk)
+          .order("id")
+          .range(from, to),
+      );
+      return rows.map((c) => ({
+        id: c.id as string,
+        full_name: (c.full_name as string) ?? "",
+        employee_code: (c.employee_code as string) ?? "",
+        mobile: (c.mobile as string) ?? "",
+      }));
     },
   });
 

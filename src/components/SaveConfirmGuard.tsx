@@ -1,11 +1,15 @@
 import { useEffect } from "react";
 import { confirmAction } from "@/components/ConfirmProvider";
+import { saveConfirmCopy } from "@/lib/form-copy";
 
 /**
  * Global guard: any save/update/create action inside a form popup asks for a
  * confirmation first, so a mis-tap can never write data silently.
  *
- * Opt out on a specific button with data-no-confirm="true".
+ * Opt out on a specific button with data-no-confirm="true". The wording follows
+ * the button: "Create client" asks "Create this client?", "Save changes" asks
+ * "Save changes?". A button can override it with data-confirm-title /
+ * data-confirm-description.
  */
 const SAVE_LABEL =
   /^(save|update|create|add|submit|approve|apply|confirm and save|save changes|save &|send for approval|assign)\b/i;
@@ -37,12 +41,12 @@ export function SaveConfirmGuard() {
       event.stopPropagation();
       event.stopImmediatePropagation();
 
+      const copy = saveConfirmCopy(label);
       void confirmAction({
-        title: "Save these changes?",
-        description:
-          "Your edits will be applied to this record. You can keep editing if you are not ready yet.",
-        confirmText: "Yes, save",
-        cancelText: "Keep editing",
+        title: button.dataset.confirmTitle || copy.title,
+        description: button.dataset.confirmDescription || copy.description,
+        confirmText: copy.confirmText,
+        cancelText: copy.cancelText,
       }).then((ok) => {
         if (!ok) return;
         button.dataset.confirmed = "1";

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { loadDashboardBase } from "@/lib/dashboard-base";
+import { fetchAllPages } from "@/lib/supabase-batch";
 import { Pager, usePaged } from "@/components/Pager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -167,23 +168,32 @@ export type UnmappedGuard = {
  * on the payroll but deployed nowhere, so they are surfaced as a red flag.
  */
 async function fetchUnmappedGuards(): Promise<UnmappedGuard[]> {
-  const [candRes, mapRes] = await Promise.all([
-    supabase
-      .from("candidates" as never)
-      .select(
-        "id,full_name,employee_code,candidate_code,role_key,status,non_billable,unit_id,is_enabled",
-      )
-      .eq("status", "active"),
-    supabase.from("candidate_units" as never).select("candidate_id"),
+  // Both reads are fully paged: with the 1,000-row cap most candidate_units
+  // rows went missing and mapped staff were flagged as "unmapped".
+  const [candRows, mapRows] = await Promise.all([
+    fetchAllPages<Record<string, unknown>>((from, to) =>
+      supabase
+        .from("candidates" as never)
+        .select(
+          "id,full_name,employee_code,candidate_code,role_key,status,non_billable,unit_id,is_enabled",
+        )
+        .eq("status", "active")
+        .is("unit_id", null)
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+    fetchAllPages<Record<string, unknown>>((from, to) =>
+      supabase
+        .from("candidate_units" as never)
+        .select("id,candidate_id")
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
   ]);
 
-  const mapped = new Set(
-    ((mapRes.data as unknown as Record<string, unknown>[]) ?? []).map((m) =>
-      String(m.candidate_id ?? ""),
-    ),
-  );
+  const mapped = new Set(mapRows.map((m) => String(m.candidate_id ?? "")));
 
-  return ((candRes.data as unknown as Record<string, unknown>[]) ?? [])
+  return candRows
     .filter(
       (c) =>
         c.is_enabled !== false &&

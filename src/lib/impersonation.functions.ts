@@ -2,8 +2,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const DEFAULT_SUPER_ADMIN_PHONE = "8373914073";
-
 function phoneFromEmail(email: unknown): string | null {
   const m = String(email ?? "").match(/^phone-(\d{10})@radiantguard\.local$/i);
   return m ? m[1] : null;
@@ -14,24 +12,43 @@ function phoneFromEmail(email: unknown): string | null {
  * phone identity so the admin sees exactly what that person sees (RLS included).
  * The caller's super-admin status is verified here on every call.
  */
+/** Roles that only the Super Admin may view as (never Leadership). */
+const PRIVILEGED_ROLES = new Set(["super_admin", "admin", "leadership"]);
+
+/** Resolves the caller: "super" (Super Admin), "leadership", or null. */
+async function callerLevel(email: unknown): Promise<"super" | "leadership" | null> {
+  const { superAdminPhone } = await import("@/lib/phone-session.server");
+  const callerPhone = phoneFromEmail(email);
+  if (!callerPhone) return null;
+  if (callerPhone === superAdminPhone()) return "super";
+  const { supabaseAdmin } = await import("@/lib/radiant-admin.server");
+  // A rehired person can have more than one non-inactive row: take any match.
+  const { data: rows } = await supabaseAdmin
+    .from("candidates")
+    .select("role_key")
+    .eq("mobile", callerPhone)
+    .neq("status", "inactive")
+    .limit(5);
+  const roles = (rows ?? []).map((r) => String(r.role_key ?? ""));
+  if (roles.includes("super_admin")) return "super";
+  if (roles.includes("leadership")) return "leadership";
+  return null;
+}
+
+/**
+ * "View as user": mints a session for the target employee's phone identity so
+ * the viewer sees exactly what that person sees (RLS included). The caller is
+ * verified on every call. Leadership may view ordinary staff only; Admin,
+ * Leadership and Super Admin accounts can be viewed by the Super Admin only.
+ */
 export const startImpersonation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ candidateId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    const superPhone = process.env["VITE_SUPER_ADMIN_PHONE"] || DEFAULT_SUPER_ADMIN_PHONE;
-    const callerPhone = phoneFromEmail(context.claims.email);
+    const { mintPhoneSession, superAdminPhone } = await import("@/lib/phone-session.server");
+    const level = await callerLevel(context.claims.email);
+    if (!level) throw new Error("Only the Super Admin or Leadership can view as another user.");
     const { supabaseAdmin } = await import("@/lib/radiant-admin.server");
-
-    let isSuper = callerPhone === superPhone;
-    if (!isSuper && callerPhone) {
-      const { data: me } = await supabaseAdmin
-        .from("candidates")
-        .select("role_key")
-        .eq("mobile", callerPhone).neq("status", "inactive")
-        .maybeSingle();
-      isSuper = me?.role_key === "super_admin" || me?.role_key === "leadership";
-    }
-    if (!isSuper) throw new Error("Only the Super Admin or Leadership can view as another user.");
 
     const { data: target, error: tErr } = await supabaseAdmin
       .from("candidates")
@@ -41,50 +58,27 @@ export const startImpersonation = createServerFn({ method: "POST" })
     if (tErr || !target) throw new Error("Employee not found.");
     const phone = String(target.mobile ?? "").replace(/\D/g, "").slice(-10);
     if (phone.length !== 10) throw new Error("This employee has no valid mobile number.");
-    if (phone === superPhone || target.role_key === "super_admin") {
+    const targetRole = String(target.role_key ?? "");
+    if (phone === superAdminPhone() || targetRole === "super_admin") {
       throw new Error("You cannot view as another Super Admin.");
+    }
+    if (level !== "super" && PRIVILEGED_ROLES.has(targetRole)) {
+      throw new Error("Only the Super Admin can view as an Admin or Leadership account.");
     }
     const eligible = await supabaseAdmin.rpc("can_phone_login", { _mobile: phone });
     if (eligible.error || eligible.data !== true) {
       throw new Error("This employee's account is not enabled for sign-in.");
     }
 
-    const email = `phone-${phone}@radiantguard.local`;
-    let link = await supabaseAdmin.auth.admin.generateLink({ type: "magiclink", email });
-    if (link.error) {
-      // Identity not created yet (never signed in) — create it, then retry.
-      const created = await supabaseAdmin.auth.admin.createUser({
-        email,
-        password: `RG-${phone}-pre-launch!`,
-        email_confirm: true,
-      });
-      if (created.error) throw new Error("Could not prepare this employee's account.");
-      link = await supabaseAdmin.auth.admin.generateLink({ type: "magiclink", email });
-    }
-    const tokenHash = link.data?.properties?.hashed_token;
-    if (link.error || !tokenHash) throw new Error("Could not open this employee's view.");
-    // For an employee who has never signed in, the auth service creates an
-    // unconfirmed account and issues a *signup* confirmation token rather than
-    // a magic-link token — verify with the type it actually issued.
-    const issued = String(link.data?.properties?.verification_type ?? "magiclink");
-    const otpType = (issued === "signup" ? "signup" : "magiclink") as "signup" | "magiclink";
-    let signedIn = await supabaseAdmin.auth.verifyOtp({ type: otpType, token_hash: tokenHash });
-    if ((signedIn.error || !signedIn.data.session) && otpType === "magiclink") {
-      const retry = await supabaseAdmin.auth.admin.generateLink({ type: "magiclink", email });
-      const h = retry.data?.properties?.hashed_token;
-      if (h) signedIn = await supabaseAdmin.auth.verifyOtp({ type: "signup", token_hash: h });
-    }
-    if (signedIn.error || !signedIn.data.session) {
-      console.error("[impersonation] verify failed", issued, signedIn.error?.message);
+    const session = await mintPhoneSession(phone).catch(() => {
       throw new Error("Could not open this employee's view.");
-    }
+    });
     return {
-      accessToken: signedIn.data.session.access_token,
-      refreshToken: signedIn.data.session.refresh_token,
+      ...session,
       phone,
       fullName: String(target.full_name ?? ""),
       employeeCode: String(target.employee_code ?? ""),
-      roleKey: String(target.role_key ?? ""),
+      roleKey: targetRole,
     };
   });
 
@@ -99,15 +93,9 @@ export const searchImpersonationTargets = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ q: z.string().max(80), page: z.number().int().min(0).max(500) }).parse(input))
   .handler(async ({ data, context }) => {
-    const superPhone = process.env["VITE_SUPER_ADMIN_PHONE"] || DEFAULT_SUPER_ADMIN_PHONE;
-    const callerPhone = phoneFromEmail(context.claims.email);
+    const level = await callerLevel(context.claims.email);
+    if (!level) throw new Error("Only the Super Admin or Leadership can view as another user.");
     const { supabaseAdmin } = await import("@/lib/radiant-admin.server");
-    let isSuper = callerPhone === superPhone;
-    if (!isSuper && callerPhone) {
-      const { data: me } = await supabaseAdmin.from("candidates").select("role_key").eq("mobile", callerPhone).neq("status", "inactive").maybeSingle();
-      isSuper = me?.role_key === "super_admin" || me?.role_key === "leadership";
-    }
-    if (!isSuper) throw new Error("Only the Super Admin or Leadership can view as another user.");
     const PAGE = 25;
     const words = data.q.replace(/[,()%*]/g, " ").trim().split(/\s+/).filter(Boolean);
     const run = async (mode: "all" | "any") => {

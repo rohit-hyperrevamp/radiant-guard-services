@@ -6,6 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchAllPages } from "@/lib/supabase-batch";
 import { ROLE_KEYS } from "@/lib/role-keys";
 import { useManagerFieldOfficerScope } from "@/lib/use-manager-scope";
+import { useHasSupabaseSession } from "@/lib/supabase-ready";
+import { istDate } from "@/lib/dashboard-base";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -32,14 +34,13 @@ export type OperationsOverviewData = {
   locations: Array<{ label: string; code: string | null; city: string; state: string }>;
 };
 
+/** India calendar day, whatever the device clock zone. */
 function localDate(d = new Date()) {
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  return istDate(d);
 }
 
 function monthStart() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+  return `${istDate().slice(0, 8)}01`;
 }
 
 type OverviewScope = {
@@ -129,6 +130,7 @@ async function loadOperationsOverview(scope: OverviewScope): Promise<OperationsO
 
 export function useOperationsOverview() {
   const managerScope = useManagerFieldOfficerScope();
+  const sessionReady = useHasSupabaseSession();
   // A manager only ever sees the cumulative picture of the field officers
   // reporting to them; everyone else keeps the company-wide view.
   const scope: OverviewScope = managerScope.isScoped
@@ -137,7 +139,8 @@ export function useOperationsOverview() {
 
   return useQuery({
     queryKey: ["operations-overview", monthStart(), localDate(), scope.unitIds ?? "all", scope.fieldOfficerCount],
-    enabled: !managerScope.isLoading,
+    // Session-gated: a token-less read returns zeros that would be cached.
+    enabled: sessionReady && !managerScope.isLoading,
     staleTime: 60_000,
     refetchInterval: 60_000,
     queryFn: () => loadOperationsOverview(scope),
@@ -232,7 +235,7 @@ export function OperationsClientLocations({ data }: { data?: OperationsOverviewD
         {visible.length === 0 && <li className="py-8 text-center text-xs text-muted-foreground">No locations match.</li>}
       </ul>
       <footer className="flex items-center justify-between border-t border-border/50 px-4 py-2.5 text-[11px] font-semibold text-muted-foreground">
-        <span>{rows.length} {mode === "city" ? "cities" : "states"} · {data?.activeSites ?? 0} active sites</span>
+        <span>{rows.length} {mode === "city" ? "cities" : "states"} · {data ? data.activeSites : "—"} active sites</span>
         <div className="flex items-center gap-1">
           <Button type="button" size="icon" variant="outline" className="h-7 w-7" disabled={current === 0} onClick={() => setPage(current - 1)} aria-label="Previous page">
             <ChevronLeft className="h-3.5 w-3.5" />

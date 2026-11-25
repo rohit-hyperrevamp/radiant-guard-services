@@ -1,25 +1,17 @@
 import { useEffect, useState, useCallback } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity, getClientIp } from "@/lib/activity-log";
-import { restorePhoneSession } from "@/lib/phone-session.functions";
 
 const STORAGE_KEY = "radiant.auth";
 const AUTH_TIMEOUT_MS = 12_000;
 const IP_LOOKUP_TIMEOUT_MS = 1_500;
 /**
- * OTP verification now happens server-side (MSG91) in `src/lib/otp.functions.ts`.
- * Legacy note kept for the super-admin phone constant below.
+ * Sign-in: the code is verified server-side in `src/lib/otp.functions.ts`,
+ * which is also the only place a Supabase session is issued. This module
+ * adopts that session and keeps it alive.
  *
- * ⚠️ Session bridging below is still deterministic-credential based ⚠️
- * The OTP below is a hardcoded development bypass used while the SMS gateway
- * integration is pending. Before launch, this MUST be replaced with a real
- * OTP provider (Twilio / MSG91 / Supabase phone auth) and the value should
- * come exclusively from server-side configuration / environment variables.
- *
- * The default OTP and super-admin phone can be overridden via Vite env vars:
- *   VITE_DEMO_OTP            (default: "111111")
- *   VITE_SUPER_ADMIN_PHONE   (default: "8373914073")
+ * SUPER_ADMIN_PHONE only drives client-side UI defaults; real authorisation is
+ * enforced by the database (RLS) and server functions.
  */
 export const SUPER_ADMIN_PHONE =
   (import.meta.env.VITE_SUPER_ADMIN_PHONE as string | undefined) ??
@@ -86,18 +78,6 @@ function emit() {
   listeners.forEach((l) => l());
 }
 
-/**
- * Bridge phone-OTP login into a real Supabase Auth session so RLS works.
- * Each phone gets a deterministic synthetic email + password (pre-launch only).
- */
-function credsForPhone(phone: string) {
-  const digits = phone.replace(/\D/g, "").slice(-10);
-  return {
-    email: `phone-${digits}@radiantguard.local`,
-    password: `RG-${digits}-pre-launch!`,
-  };
-}
-
 function withTimeout<T>(promise: Promise<T>, message: string, ms = AUTH_TIMEOUT_MS) {
   return Promise.race<T>([
     promise,
@@ -158,51 +138,41 @@ async function authUserFromSession(): Promise<AuthUser | null> {
   return user;
 }
 
-async function ensureSupabaseSession(
-  phone: string,
-  restore: (input: {
-    data: { phone: string };
-  }) => Promise<{ accessToken: string; refreshToken: string }>,
-) {
+export type SessionTokens = { accessToken: string; refreshToken: string };
+
+/**
+ * Establishes the Supabase session for `phone`.
+ *
+ * - With `tokens` (issued by verifyLoginOtp after a verified code): adopt them.
+ * - Without tokens (Face ID unlock): only re-open a session that already
+ *   exists on this device for the SAME phone. There is no way to obtain a new
+ *   session from a phone number alone.
+ */
+async function ensureSupabaseSession(phone: string, tokens?: SessionTokens) {
   const digits = phone.replace(/\D/g, "").slice(-10);
-  const isSuperAdmin = digits === SUPER_ADMIN_PHONE;
-
-  // Preflight: only super-admins or active/approved & enabled employees may sign in.
-  if (!isSuperAdmin) {
-    const rpcRes = await withTimeout(
-      Promise.resolve(supabase.rpc("can_phone_login" as never, { _mobile: digits } as never)) as Promise<{ data: boolean | null; error: { message: string } | null }>,
-      "Verifying access is taking too long. Please try again.",
+  if (tokens) {
+    const set = await withTimeout(
+      supabase.auth.setSession({ access_token: tokens.accessToken, refresh_token: tokens.refreshToken }),
+      "Login is taking too long. Please try again.",
     );
-    if (rpcRes.error) throw new Error(rpcRes.error.message);
-    if (!rpcRes.data) {
-      throw new Error(
-        "Access disabled. Your account is not active. Please contact your administrator.",
-      );
+    if (set.error || !set.data.session) {
+      throw set.error ?? new Error("Could not establish a secure session.");
     }
+    return;
   }
-
-  const { email, password } = credsForPhone(phone);
-  const signIn = await withTimeout(
-    supabase.auth.signInWithPassword({ email, password }),
-    "Login is taking too long. Please try again.",
-  );
-  if (!signIn.error) return;
-
-  const tokens = await withTimeout(
-    restore({ data: { phone: digits } }),
-    "Account restoration is taking too long. Please try again.",
-  );
-  const restored = await supabase.auth.setSession({
-    access_token: tokens.accessToken,
-    refresh_token: tokens.refreshToken,
-  });
-  if (restored.error || !restored.data.session) {
-    throw restored.error ?? new Error("Could not establish a secure session.");
+  const live = await recoverSession(2);
+  const { data } = await supabase.auth.getSession();
+  const email = data.session?.user?.email ?? "";
+  if (!live || email.toLowerCase() !== phoneIdentityEmailFor(digits)) {
+    throw new Error("Your session has expired. Please sign in with the OTP sent to your phone.");
   }
 }
 
+function phoneIdentityEmailFor(digits: string): string {
+  return `phone-${digits}@radiantguard.local`;
+}
+
 export function useAuth() {
-  const restoreSession = useServerFn(restorePhoneSession);
   const [user, setUserState] = useState<AuthUser | null>(null);
   const [isReady, setIsReady] = useState(false);
 
@@ -324,14 +294,14 @@ export function useAuth() {
     };
   }, []);
 
-  const login = useCallback(async (phone: string) => {
+  const login = useCallback(async (phone: string, tokens?: SessionTokens) => {
     const digits = phone.replace(/\D/g, "").slice(-10);
     const role: AuthUser["role"] =
       digits === SUPER_ADMIN_PHONE ? "super_admin" : "user";
     const ipPromise = resolveClientIpQuickly();
     manualSignOut = false;
     try {
-      await ensureSupabaseSession(phone, restoreSession);
+      await ensureSupabaseSession(phone, tokens);
     } catch (e) {
       void ipPromise.then((ip) =>
         logActivity({
@@ -378,7 +348,7 @@ export function useAuth() {
       }),
     );
     emit();
-  }, [restoreSession]);
+  }, []);
 
   const logout = useCallback(() => {
     const current = readStoredAuthUser();

@@ -73,33 +73,58 @@ function cleanTokens(tokens: string[]) {
   );
 }
 
-async function findByCodes(codes: string[]): Promise<CandidateRow | null> {
+/** Lookup outcome: one record, nothing, or more than one candidate (never guess). */
+type Lookup = CandidateRow | "ambiguous" | null;
+
+/** Pick the single record from a lookup, or report ambiguity — never the first hit. */
+export function uniqueMatch<T extends { id: string }>(rows: T[]): T | "ambiguous" | null {
+  const ids = new Set(rows.map((r) => r.id));
+  if (ids.size === 0) return null;
+  if (ids.size > 1) return "ambiguous";
+  return rows[0];
+}
+
+/** Escape LIKE wildcards so ilike behaves as an exact, case-insensitive match. */
+export const exactIlikePattern = (value: string) =>
+  value.trim().replace(/\s+/g, " ").replace(/[\\%_]/g, (c) => `\\${c}`);
+
+async function findByCodes(codes: string[]): Promise<Lookup> {
   if (!codes.length) return null;
   for (const column of ["employee_code", "candidate_code"] as const) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("candidates")
       .select(CANDIDATE_SELECT)
       .in(column, codes)
-      .limit(2);
-    const rows = (data ?? []) as CandidateRow[];
-    if (rows.length === 1) return rows[0];
-    if (rows.length > 1) return rows[0];
+      .limit(5);
+    if (error) throw new Error(`Could not look up employee codes: ${error.message}`);
+    const hit = uniqueMatch((data ?? []) as CandidateRow[]);
+    if (hit) return hit;
   }
   return null;
 }
 
-async function findByName(names: string[]): Promise<CandidateRow | null> {
+async function findByName(names: string[]): Promise<Lookup> {
   for (const name of names) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("candidates")
       .select(CANDIDATE_SELECT)
-      .ilike("full_name", name)
+      .ilike("full_name", exactIlikePattern(name))
       .limit(2);
-    const rows = (data ?? []) as CandidateRow[];
+    if (error) throw new Error(`Could not look up employee names: ${error.message}`);
     // Only trust a name when it is unambiguous company-wide.
-    if (rows.length === 1) return rows[0];
+    const hit = uniqueMatch((data ?? []) as CandidateRow[]);
+    if (hit) return hit;
   }
   return null;
+}
+
+/**
+ * Imports may move postings (primary unit, reliever flag, candidates.unit_id)
+ * only for the current or a future attendance window. Importing a past month
+ * must never move a guard's present home unit.
+ */
+export function importMayChangePostings(periodEnd: string, todayIso: string): boolean {
+  return !!periodEnd && periodEnd >= todayIso;
 }
 
 async function roleKeyForDesignation(contractId: string | null, designationId: string | null) {
@@ -128,6 +153,8 @@ export async function ensureAttendanceUnitMapping(
   unitId: string,
   designationId: string | null,
   sheetReliever = false,
+  /** False when importing a past period: add a missing link, never move postings. */
+  allowPostingChanges = true,
 ): Promise<AttendanceUnitMapping> {
   const { data: existing } = await supabase
     .from("candidate_units")
@@ -143,6 +170,33 @@ export async function ensureAttendanceUnitMapping(
     is_primary: boolean | null;
     is_reliever: boolean | null;
   } | null;
+
+  if (row && !allowPostingChanges) {
+    // Past period: postings can't be changed, so record attendance on the line
+    // that actually exists. If the existing link is a reliever link, the DB only
+    // accepts reliever (Extra Duty) marks there — writing a regular line would be
+    // rejected and abort the import halfway.
+    return {
+      mapped: false,
+      isPrimary: row.is_primary === true,
+      isReliever: row.is_reliever === true || sheetReliever,
+    };
+  }
+
+  if (!row && !allowPostingChanges) {
+    // Past period: the person needs a link to appear on this sheet, but it must
+    // not become their primary posting or demote their current one.
+    const { error } = await supabase.from("candidate_units").insert({
+      candidate_id: candidateId,
+      unit_id: unitId,
+      designation_id: designationId,
+      is_primary: false,
+      is_reliever: sheetReliever,
+      sort_order: 0,
+    } as never);
+    if (error) throw new Error(error.message);
+    return { mapped: true, isPrimary: false, isReliever: sheetReliever };
+  }
 
   if (row) {
     const patch: Record<string, unknown> = {};
@@ -204,23 +258,25 @@ export async function forcePrimaryAttendanceMapping(
 
 /** Keep exactly one primary posting: this unit, and keep the home unit in step. */
 async function demoteOtherPrimaries(candidateId: string, unitId: string) {
-  await supabase
+  const { error } = await supabase
     .from("candidate_units")
     .update({ is_primary: false } as never)
     .eq("candidate_id", candidateId)
     .eq("is_primary", true)
     .neq("unit_id", unitId);
+  if (error) throw new Error(`Could not update other postings: ${error.message}`);
   await syncGuardHomeUnit(candidateId, unitId);
 }
 
 /** A guard's home unit must always be the unit of their primary posting. */
 async function syncGuardHomeUnit(candidateId: string, unitId: string) {
-  await supabase
+  const { error } = await supabase
     .from("candidates")
     .update({ unit_id: unitId } as never)
     .eq("id", candidateId)
     .eq("role_key", "guard")
     .neq("unit_id", unitId);
+  if (error) throw new Error(`Could not update home unit: ${error.message}`);
 }
 
 
@@ -231,14 +287,26 @@ export async function resolveSheetPersonForUnit(opts: {
   /** Joining / application date used when an employee has to be created. */
   joiningDate: string;
   createdBy?: string | null;
+  /** False for a past period — see importMayChangePostings. Defaults to true. */
+  allowPostingChanges?: boolean;
+  /** Called (and null returned) when the row matches more than one employee. */
+  onUnmatched?: (reason: string) => void;
 }): Promise<ResolvedSheetPerson | null> {
   const { unitId, contractId, ref, joiningDate, createdBy } = opts;
+  const allowPostingChanges = opts.allowPostingChanges !== false;
   const tokens = cleanTokens([...ref.codeTokens, ...ref.nameTokens]);
   const codes = tokens.filter(looksLikeCode);
   const names = tokens.filter(looksLikeName).sort((a, b) => b.length - a.length);
 
   let found = await findByCodes(codes);
   if (!found) found = await findByName(names);
+  if (found === "ambiguous") {
+    // Never pick one of several people, and never create a duplicate.
+    opts.onUnmatched?.(
+      `${names[0] ?? codes[0] ?? "Row"}: matches more than one employee — fix the ID on the sheet`,
+    );
+    return null;
+  }
 
   if (found) {
     const mapping = await ensureAttendanceUnitMapping(
@@ -246,6 +314,7 @@ export async function resolveSheetPersonForUnit(opts: {
       unitId,
       ref.designationId ?? found.designation_id ?? null,
       ref.isReliever === true,
+      allowPostingChanges,
     );
     return {
       candidateId: found.id,
@@ -287,6 +356,8 @@ export async function resolveSheetPersonForUnit(opts: {
     unitId,
     ref.designationId,
     ref.isReliever === true,
+    // A just-created employee has no other posting to move.
+    true,
   );
 
   return {
@@ -297,4 +368,94 @@ export async function resolveSheetPersonForUnit(opts: {
     created: true,
     ...mapping,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Import replacement: only the dates the file actually covers are replaced.
+// ---------------------------------------------------------------------------
+
+/** One attendance line cell exactly as an import wrote it. */
+export type ImportedCell = {
+  candidate_id: string;
+  designation_id: string | null;
+  shift_hours: number | null;
+  is_reliever: boolean | null;
+  entry_date: string;
+};
+
+type StoredImportCell = ImportedCell & { id: string };
+
+const importLineKey = (e: ImportedCell) =>
+  `${e.candidate_id}|${e.designation_id ?? ""}|${Number(e.shift_hours) || 0}|${e.is_reliever ? 1 : 0}|${e.entry_date}`;
+
+/**
+ * Stored entries an import replaces: on a date the file covers for that person,
+ * any line the import did not just write (e.g. a phantom designation). Dates
+ * the file does not cover for the person are never touched.
+ */
+export function staleEntryIdsAfterImport(
+  stored: StoredImportCell[],
+  written: ImportedCell[],
+  coveredDates: Map<string, Set<string>>,
+): string[] {
+  const writtenKeys = new Set(written.map(importLineKey));
+  return stored
+    .filter((e) => coveredDates.get(e.candidate_id)?.has(e.entry_date))
+    .filter((e) => !writtenKeys.has(importLineKey(e)))
+    .map((e) => e.id);
+}
+
+/** Add `dates` to `candidateId`'s covered set. */
+export function addCoveredDates(
+  covered: Map<string, Set<string>>,
+  candidateId: string,
+  dates: Iterable<string>,
+) {
+  const set = covered.get(candidateId) ?? new Set<string>();
+  for (const d of dates) set.add(d);
+  covered.set(candidateId, set);
+}
+
+/**
+ * Run AFTER the import's writes succeeded: delete the stale lines on covered
+ * dates only. Write-then-delete keeps old attendance if a write fails halfway.
+ * (True atomicity needs a server RPC.)
+ */
+export async function removeEntriesReplacedByImport(opts: {
+  unitId: string;
+  periodStart: string;
+  periodEnd: string;
+  written: ImportedCell[];
+  coveredDates: Map<string, Set<string>>;
+}): Promise<number> {
+  const candidateIds = Array.from(opts.coveredDates.keys());
+  if (!candidateIds.length) return 0;
+  const stored: StoredImportCell[] = [];
+  for (let i = 0; i < candidateIds.length; i += 100) {
+    const chunk = candidateIds.slice(i, i + 100);
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await supabase
+        .from("attendance_entries")
+        .select("id, candidate_id, designation_id, shift_hours, is_reliever, entry_date" as never)
+        .eq("unit_id", opts.unitId)
+        .in("candidate_id", chunk)
+        .gte("entry_date", opts.periodStart)
+        .lte("entry_date", opts.periodEnd)
+        .order("id")
+        .range(from, from + 999);
+      if (error) throw error;
+      const rows = (data ?? []) as unknown as StoredImportCell[];
+      stored.push(...rows);
+      if (rows.length < 1000) break;
+    }
+  }
+  const ids = staleEntryIdsAfterImport(stored, opts.written, opts.coveredDates);
+  for (let i = 0; i < ids.length; i += 200) {
+    const { error } = await supabase
+      .from("attendance_entries")
+      .delete()
+      .in("id", ids.slice(i, i + 200));
+    if (error) throw error;
+  }
+  return ids.length;
 }

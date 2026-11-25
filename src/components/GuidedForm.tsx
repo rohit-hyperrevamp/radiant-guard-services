@@ -17,6 +17,8 @@ type GuidedFormProps = {
   onStepChange: (key: string) => void;
   isStepComplete: (key: string) => boolean;
   onCancel: () => void;
+  /** Called when the user chooses "Discard changes" — clear any saved draft here. */
+  onDiscard?: () => void;
   onSaveDraft?: () => void;
   onSubmit: () => void;
   saving?: boolean;
@@ -65,6 +67,7 @@ export function GuidedForm({
   onStepChange,
   isStepComplete,
   onCancel,
+  onDiscard,
   onSaveDraft,
   onSubmit,
   saving = false,
@@ -105,13 +108,12 @@ export function GuidedForm({
       return;
     }
     touchedRef.current = false;
+    onDiscard?.();
     onCancel();
   };
 
   // Expose the same prompt to the dialog's Esc / outside-click / header X.
   if (closeGuardRef) closeGuardRef.current = () => void requestCancel();
-
-
 
   return (
     <div className="guided-form flex h-full min-h-0 flex-col lg:grid lg:grid-cols-[17rem_minmax(0,1fr)]">
@@ -187,7 +189,7 @@ export function GuidedForm({
                 variant="outline"
                 onClick={() => onStepChange(step.key)}
                 className={cn(
-                   "h-8 shrink-0 snap-start rounded-full px-2.5 text-[11px] font-medium",
+                  "h-8 shrink-0 snap-start rounded-full px-2.5 text-[11px] font-medium",
                   index === stepIndex && "border-accent bg-accent text-accent-foreground hover:bg-accent/90 hover:text-accent-foreground",
                   index !== stepIndex && isStepComplete(step.key) && "border-accent/30 bg-accent/10 text-accent",
                 )}
@@ -220,7 +222,7 @@ export function GuidedForm({
               <ChevronLeft className="mr-1 h-4 w-4" /> Back
             </Button>
           )}
-          <Button type="button" variant="ghost" onClick={onSaveDraft} disabled={!onSaveDraft || savingDraft || saving}>
+          <Button type="button" variant="ghost" onClick={onSaveDraft} disabled={!onSaveDraft || savingDraft || saving} aria-label="Save draft" data-no-tip>
             <Save className="mr-1 h-4 w-4" /> {savingDraft ? "Saving…" : "Draft"}
           </Button>
           {isLast ? (

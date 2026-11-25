@@ -11,6 +11,7 @@ import {
   checkOut,
   fetchTodayPunch,
   getCurrentPosition,
+  istDateOf,
   verifyFaceForAttendance,
   distanceMeters,
   formatDistance,
@@ -293,8 +294,7 @@ export function MarkAttendanceCard({
     queryFn: async () => {
       if (!candidateId) return null;
       // Only a visit started today can block logout — older unclosed visits are stale.
-      const startOfDay = new Date();
-      startOfDay.setHours(0, 0, 0, 0);
+      const startOfDay = new Date(`${istDateOf()}T00:00:00+05:30`);
       const { data, error } = await supabase
         .from("field_visits" as never)
         .select("id")
@@ -553,7 +553,9 @@ export function MarkAttendanceCard({
 
       <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-4 sm:gap-3">
         <div className="rounded-xl border border-border/50 bg-background/40 p-2.5">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Log in</div>
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Log in{punch && punch.punch_date !== istDateOf() ? " · yesterday" : ""}
+          </div>
           <div className="mt-0.5 font-display text-base font-bold tabular-nums text-foreground sm:text-lg">
             {timeStr(punch?.check_in_at ?? null)}
           </div>

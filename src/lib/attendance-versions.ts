@@ -20,6 +20,9 @@ export type AttendanceSnapshotEntry = {
   entry_date: string;
   code: string;
   ot_hours: number;
+  /** Absent on snapshots frozen before line identity was stored (legacy). */
+  shift_hours?: number | null;
+  is_reliever?: boolean;
 };
 
 export type AttendanceVersionRow = {
@@ -39,14 +42,50 @@ export type EntryDiff = {
   candidateId: string;
   designationId: string | null;
   date: string;
+  shiftHours: number | null;
+  isReliever: boolean;
   beforeCode: string;
   afterCode: string;
   beforeEd: number;
   afterEd: number;
 };
 
-const keyOf = (e: { candidate_id: string; designation_id: string | null; entry_date: string }) =>
-  `${e.candidate_id}|${e.designation_id ?? ""}|${e.entry_date}`;
+type SnapshotKeySource = {
+  candidate_id: string;
+  designation_id: string | null;
+  entry_date: string;
+  shift_hours?: number | null;
+  is_reliever?: boolean | null;
+};
+
+/** One attendance line = person + role + shift length + reliever flag + date.
+ *  A regular and a reliever line on the same date are different lines. */
+export const snapshotKeyOf = (e: SnapshotKeySource, legacy = false) =>
+  legacy
+    ? `${e.candidate_id}|${e.designation_id ?? ""}|${e.entry_date}`
+    : `${e.candidate_id}|${e.designation_id ?? ""}|${e.shift_hours == null ? "" : Number(e.shift_hours)}|${e.is_reliever ? 1 : 0}|${e.entry_date}`;
+
+/** Snapshots frozen before shift_hours/is_reliever were stored carry neither field. */
+const isLegacySnapshot = (rows: AttendanceSnapshotEntry[]) =>
+  rows.length > 0 && rows.every((e) => !("shift_hours" in e) && !("is_reliever" in e));
+
+const toSnapshot = (e: {
+  candidate_id: string;
+  designation_id?: string | null;
+  entry_date: string;
+  code?: string | null;
+  ot_hours?: number | string | null;
+  shift_hours?: number | string | null;
+  is_reliever?: boolean | null;
+}): AttendanceSnapshotEntry => ({
+  candidate_id: e.candidate_id,
+  designation_id: e.designation_id ?? null,
+  entry_date: e.entry_date,
+  code: e.code ?? "",
+  ot_hours: Number(e.ot_hours) || 0,
+  shift_hours: e.shift_hours == null ? null : Number(e.shift_hours),
+  is_reliever: !!e.is_reliever,
+});
 
 export async function fetchAttendanceVersions(
   unitId: string,
@@ -78,13 +117,7 @@ export async function startAttendanceAmendment(params: {
   const uid = auth?.user?.id ?? null;
 
   const live = await fetchAttendanceEntriesForPeriod({ unitId, start: periodStart, end: periodEnd });
-  const snapshot: AttendanceSnapshotEntry[] = live.map((e) => ({
-    candidate_id: e.candidate_id,
-    designation_id: e.designation_id ?? null,
-    entry_date: e.entry_date,
-    code: e.code ?? "",
-    ot_hours: Number(e.ot_hours) || 0,
-  }));
+  const snapshot: AttendanceSnapshotEntry[] = live.map(toSnapshot);
 
   const { error: verErr } = await supabase.from("attendance_sheet_versions" as never).upsert(
     {
@@ -135,8 +168,11 @@ export function diffAttendance(
   before: AttendanceSnapshotEntry[],
   after: AttendanceSnapshotEntry[],
 ): EntryDiff[] {
-  const beforeMap = new Map(before.map((e) => [keyOf(e), e]));
-  const afterMap = new Map(after.map((e) => [keyOf(e), e]));
+  // Legacy snapshots have no line identity; compare them on the old key so an
+  // upgrade does not flag every row as changed.
+  const legacy = isLegacySnapshot(before);
+  const beforeMap = new Map(before.map((e) => [snapshotKeyOf(e, legacy), e]));
+  const afterMap = new Map(after.map((e) => [snapshotKeyOf(e, legacy), e]));
   const keys = new Set([...beforeMap.keys(), ...afterMap.keys()]);
   const out: EntryDiff[] = [];
   for (const k of keys) {
@@ -152,6 +188,8 @@ export function diffAttendance(
       candidateId: ref.candidate_id,
       designationId: ref.designation_id ?? null,
       date: ref.entry_date,
+      shiftHours: ref.shift_hours == null ? null : Number(ref.shift_hours),
+      isReliever: !!ref.is_reliever,
       beforeCode: bCode,
       afterCode: aCode,
       beforeEd: bEd,
@@ -163,11 +201,5 @@ export function diffAttendance(
 
 export async function fetchLiveSnapshot(unitId: string, periodStart: string, periodEnd: string) {
   const live = await fetchAttendanceEntriesForPeriod({ unitId, start: periodStart, end: periodEnd });
-  return live.map((e) => ({
-    candidate_id: e.candidate_id,
-    designation_id: e.designation_id ?? null,
-    entry_date: e.entry_date,
-    code: e.code ?? "",
-    ot_hours: Number(e.ot_hours) || 0,
-  })) as AttendanceSnapshotEntry[];
+  return live.map(toSnapshot);
 }

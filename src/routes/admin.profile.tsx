@@ -374,7 +374,11 @@ function ProfilePage() {
     queryFn: async () => {
       const [unitRes, desigRes, roleRes, assetRes] = await Promise.all([
         profile?.unit_id
-          ? supabase.from("units").select("id,name,city").eq("id", profile.unit_id).maybeSingle()
+          ? supabase
+              .from("units")
+              .select("id,name,billing_city")
+              .eq("id", profile.unit_id)
+              .maybeSingle()
           : Promise.resolve({ data: null, error: null } as any),
         profile?.designation_id
           ? supabase
@@ -391,7 +395,14 @@ function ProfilePage() {
           : Promise.resolve({ data: [], error: null } as any),
       ]);
       return {
-        unit: (unitRes.data as UnitRow | null) ?? null,
+        // `units.city` doesn't exist live; the site's city is billing_city.
+        unit: unitRes.data
+          ? {
+              id: (unitRes.data as { id: string }).id,
+              name: (unitRes.data as { name: string }).name,
+              city: (unitRes.data as { billing_city?: string | null }).billing_city || undefined,
+            } satisfies UnitRow
+          : null,
         designation: (desigRes.data as LookupRow | null) ?? null,
         role: (roleRes.data as { key: string; name: string } | null) ?? null,
         assets: (assetRes.data as LookupRow[] | null) ?? [],
@@ -513,7 +524,9 @@ function ProfilePage() {
           .select(
             "id,code,name,location,billing_city,billing_state,branch_id,customer_id,reporting_officers,emergency_contact_name,emergency_contact_mobile,nearby_hospital_name,nearby_hospital_mobile",
           )
-          .contains("reporting_officers", [{ name: profile.full_name }]);
+          // JSONB containment needs a JSON literal: `.contains()` with an array of
+          // objects serialises as a Postgres array ("{[object Object]}") → 22P02.
+          .filter("reporting_officers", "cs", JSON.stringify([{ name: profile.full_name }]));
         const ownIds = new Set(ownPostings.map((u: any) => u.id));
         const extraBranchIds = Array.from(
           new Set(((ou as any[]) ?? []).map((u: any) => u.branch_id).filter(Boolean)),

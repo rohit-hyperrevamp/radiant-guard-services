@@ -67,6 +67,14 @@ function addAliases(ctx: FormulaContext, amount: number, labels: (string | null 
   }
 }
 
+export type AddOnOptions = {
+  /** Calendar days of the billed period (days_in_month / working_days).
+   *  Invoices pass their period length; omitted = the current month (contract editor). */
+  daysInMonth?: number;
+};
+
+const currentMonthDays = () => new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+
 /**
  * Live value for one add-on line. A custom / plain-fixed line (no formula)
  * keeps its entered amount; anything formula-driven is evaluated now.
@@ -75,6 +83,7 @@ export function liveAddOnAmount(
   line: AddOnLine,
   resource: AddOnResource,
   extraEmployer: AddOnLine[] = [],
+  options: AddOnOptions = {},
 ): number {
   if (!hasFormula(line)) return num(line.amount);
   const cfg = parseFormulaConfig(line.formulaMode ?? null, line.formulaExpression ?? null);
@@ -96,6 +105,7 @@ export function liveAddOnAmount(
   const benefitsTotal = benefits.reduce((s, b) => s + num(b.amount), 0);
   const employerTotal = employer.reduce((s, b) => s + num(b.amount), 0);
   const totalCtc = componentsTotal + benefitsTotal + employerTotal;
+  const monthDays = options.daysInMonth && options.daysInMonth > 0 ? options.daysInMonth : currentMonthDays();
 
   const ctx: FormulaContext = {
     basic: 0,
@@ -110,8 +120,8 @@ export function liveAddOnAmount(
     billing_rate: totalCtc + relieverTotal,
     billingrate: totalCtc + relieverTotal,
     fixed_amount: num(line.amount),
-    days_in_month: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate(),
-    working_days: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate(),
+    days_in_month: monthDays,
+    working_days: monthDays,
   } as FormulaContext;
 
   for (const c of components) addAliases(ctx, num(c.amount), [c.name]);
@@ -129,11 +139,11 @@ export function liveAddOnAmount(
  * against the live Total CTC. Management fee sees the refreshed reliever, which
  * mirrors the contract rate card ordering (CTC -> reliever -> fee).
  */
-export function refreshBillingAddOns<T extends AddOnResource>(resource: T): T {
+export function refreshBillingAddOns<T extends AddOnResource>(resource: T, options: AddOnOptions = {}): T {
   const refreshList = (list: AddOnLine[] | undefined, extraEmployer: AddOnLine[]) =>
     (list ?? []).map((line) =>
       isBillingAddOn(line)
-        ? { ...line, amount: liveAddOnAmount(line, resource, extraEmployer) }
+        ? { ...line, amount: liveAddOnAmount(line, resource, extraEmployer, options) }
         : line,
     );
 
@@ -141,10 +151,10 @@ export function refreshBillingAddOns<T extends AddOnResource>(resource: T): T {
   const withReliever: T = {
     ...resource,
     benefits: (resource.benefits ?? []).map((l) =>
-      isRelieverLine(l) ? { ...l, amount: liveAddOnAmount(l, resource) } : l,
+      isRelieverLine(l) ? { ...l, amount: liveAddOnAmount(l, resource, [], options) } : l,
     ),
     employerContributions: (resource.employerContributions ?? []).map((l) =>
-      isRelieverLine(l) ? { ...l, amount: liveAddOnAmount(l, resource) } : l,
+      isRelieverLine(l) ? { ...l, amount: liveAddOnAmount(l, resource, [], options) } : l,
     ),
   };
 
@@ -165,8 +175,8 @@ export function refreshBillingAddOns<T extends AddOnResource>(resource: T): T {
   } as T;
 }
 
-export function refreshBillingAddOnsAll<T extends AddOnResource>(resources: T[]): T[] {
-  return resources.map(refreshBillingAddOns);
+export function refreshBillingAddOnsAll<T extends AddOnResource>(resources: T[], options: AddOnOptions = {}): T[] {
+  return resources.map((r) => refreshBillingAddOns(r, options));
 }
 
 /**

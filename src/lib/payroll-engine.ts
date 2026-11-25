@@ -33,11 +33,26 @@ import {
   type PtSlabLike,
   EXTRA_DUTY_COMPONENT_RE,
   normalizeOtEsi,
+  roundGrossRupees,
+  wageShortfall,
 } from "@/lib/payroll-calc";
 import { resolveLwf, type LwfRow } from "@/lib/lwf-lookup";
 import { employerCostOnly, managementFeeOf } from "@/lib/contract-billing-addons";
 import { fetchAttendanceEntriesForPeriod } from "@/lib/attendance-fetch";
 import { fetchOtherSitePtTotals, fetchOtherSitesWorked, fetchPtAllocations, ptForSite } from "@/lib/pt-cross-site";
+
+export { lwfPeriodMonth } from "@/lib/payroll-calc";
+import { lwfPeriodMonth } from "@/lib/payroll-calc";
+
+/**
+ * Gross a payroll line contributes to the PT slab: the same whole-rupee
+ * rounding the final gross gets when that line's gross is rounded, so the
+ * slab is read on what is actually paid.
+ */
+export function ptGrossForLine(earnedGross: number, roundsGross: boolean): number {
+  const g = Number(earnedGross) || 0;
+  return roundsGross ? roundGrossRupees(g) : g;
+}
 
 // Ledger names for one-off additions/deductions are stored as
 // "<code> - <name> - <date>" (e.g. "41084 - Uniform - 2026-05-01").
@@ -801,7 +816,7 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
     // and the master row is enabled. Otherwise LWF rows are zeroed.
     if (usesLwfMaster && wages && isPrimary && lwfRows && pincodeRanges) {
       const lwfRes = resolveLwf(String(ptPincode ?? ""), pincodeRanges as never, lwfRows, ptState);
-      const periodMonth = new Date(start).getMonth() + 1; // 1-12
+      const periodMonth = lwfPeriodMonth(end); // 1-12, period END month
       let applies = false;
       let employee = 0;
       let employer = 0;
@@ -882,7 +897,11 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
   // — minus PT already charged elsewhere, carried on one line only.
   const siteGrossByCandidate = new Map<string, number>();
   for (const r of rows) {
-    if (r.wages) siteGrossByCandidate.set(r.id, (siteGrossByCandidate.get(r.id) ?? 0) + r.wages.earnedGross);
+    if (r.wages) {
+      // Same condition as the final gross rounding below.
+      const roundsGross = !contractOnly || !!r.resource?.roundOffTotals?.["gross"];
+      siteGrossByCandidate.set(r.id, (siteGrossByCandidate.get(r.id) ?? 0) + ptGrossForLine(r.wages.earnedGross, roundsGross));
+    }
   }
   for (const r of rows) {
     if (!r.usesPtSlab || !r.wages || !r.isPrimary) continue;
@@ -914,6 +933,7 @@ export async function computePayrollUnitRows(input: PayrollUnitInput, src?: Payr
     if (r.wages && (!contractOnly || r.resource?.roundOffTotals?.["gross"])) Object.assign(r.wages, roundFinalGross(r.wages));
     const wages = r.wages;
     if (wages) {
+      wages.shortfall = wageShortfall(wages);
       wages.components = mergePayItems(wages.components) as typeof wages.components;
       wages.deductions = mergePayItems(wages.deductions) as typeof wages.deductions;
       wages.employerContributions = mergePayItems(wages.employerContributions) as typeof wages.employerContributions;
