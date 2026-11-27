@@ -102,6 +102,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ContractCopySection } from "@/components/ContractCopySection";
 import {
   Command,
   CommandEmpty,
@@ -4121,6 +4122,13 @@ function ContractFormDialog({
               </Field>
             </div>
           </Section>
+
+          {/* Contract Copy: the rate card / signed copy this contract was reviewed against */}
+          {editing?.id ? (
+            <Section title="Contract Copy">
+              <ContractCopySection contractId={editing.id} />
+            </Section>
+          ) : null}
 
           {/* Approval Audit Trail */}
           {editing && audit?.row ? (
