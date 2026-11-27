@@ -23,6 +23,8 @@ import {
   type CharterPageData,
 } from "@/lib/charter-units";
 import { usePayrollWindowSelection } from "@/lib/use-payroll-window-selection";
+import { AttendanceComplianceBox } from "@/components/AttendanceComplianceBox";
+import { useCurrentPermissions } from "@/lib/rbac";
 
 
 
@@ -137,6 +139,7 @@ function AttendanceUnitsPage() {
 
 
   const foScope = useOperationalUnitScope();
+  const { canSwitch } = useCurrentPermissions();
   const rawUnits = data?.units ?? [];
   const units = useMemo(
     () => (foScope.isScoped ? rawUnits.filter((u) => foScope.unitIds.has(u.id)) : rawUnits),
@@ -220,7 +223,14 @@ function AttendanceUnitsPage() {
         </Button>
       </div>
 
-
+      {canSwitch("attendance", "compliance") && (
+        <AttendanceComplianceBox
+          year={year}
+          monthIdx={monthIdx}
+          windowKey={selectedKey}
+          windowLabel={selectedKey === "all" ? "All windows" : (periodSelection.selectedWindow?.label ?? selectedKey)}
+        />
+      )}
 
       <div className="overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm sm:rounded-3xl">
         <div className="border-b border-border/60 px-3 py-2.5 sm:space-y-3 sm:px-5 sm:py-5">

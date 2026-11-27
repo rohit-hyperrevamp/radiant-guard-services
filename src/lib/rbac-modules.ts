@@ -199,6 +199,7 @@ export const RBAC_MODULES: ModuleDef[] = [
       { key: "reopen",  label: "Reopen approved attendance (Approve)",   path: "/admin/attendance#reopen",  icon: ClipboardList },
       { key: "amend",   label: "Amend after payroll paid (Approve)",     path: "/admin/attendance#amend",   icon: ClipboardList },
       { key: "all_units", label: "Work on all units — otherwise only mapped units (View)", path: "/admin/attendance#all-units", icon: Building2 },
+      { key: "compliance", label: "Compliance box — people over 31 duties in the window (View)", path: "/admin/attendance#compliance", icon: BadgeCheck },
     ],
   },
   {
