@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { ACCENT_CHIP, ACCENT_TILE_BG } from "@/components/tile-theme";
 
 /** Duties above this in one attendance period are flagged. */
 export const COMPLIANCE_DUTY_LIMIT = 31;
@@ -127,7 +128,7 @@ export function AttendanceComplianceBox({
           onClick={() => setOpen(true)}
           disabled={peopleQ.isLoading}
           data-panel="true"
-          className={`dashboard-summary-tile group tile-aurora ${count > 0 ? "tile-c-rose" : "tile-c-emerald"} relative flex h-[124px] min-w-0 snap-start flex-col overflow-hidden rounded-2xl border p-3 text-left sm:h-[164px] sm:p-5`}
+          className={`dashboard-summary-tile group relative flex h-[124px] min-w-0 snap-start flex-col overflow-hidden rounded-2xl border border-border/40 p-3 text-left transition-colors sm:h-[172px] sm:rounded-[26px] sm:p-5 ${ACCENT_TILE_BG[count > 0 ? "rose" : "emerald"]}`}
         >
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
@@ -139,7 +140,7 @@ export function AttendanceComplianceBox({
               </div>
             </div>
             <span
-              className={`chip-grad ${count > 0 ? "tile-c-rose" : "tile-c-emerald"} grid h-7 w-7 shrink-0 place-items-center rounded-full sm:h-9 sm:w-9`}
+              className={`grid h-7 w-7 shrink-0 place-items-center rounded-full ring-1 ring-inset sm:h-9 sm:w-9 ${ACCENT_CHIP[count > 0 ? "rose" : "emerald"]}`}
             >
               <ShieldAlert className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </span>
