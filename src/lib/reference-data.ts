@@ -39,6 +39,7 @@ export const REFERENCE_TABLES = {
   orgSettings: "org_settings",
   billingDayBases: "billing_day_bases",
   publicHolidays: "public_holidays",
+  clientHolidays: "client_holidays",
 } as const;
 
 /**
@@ -47,7 +48,7 @@ export const REFERENCE_TABLES = {
  * this tab invalidate immediately through invalidateReference).
  */
 export const REFERENCE_MONEY_TTL_MS = 5 * 60_000;
-const MONEY_TABLES = new Set<string>(["allowanceTypes", "costComponents", "billingDayBases", "publicHolidays"]);
+const MONEY_TABLES = new Set<string>(["allowanceTypes", "costComponents", "billingDayBases", "publicHolidays", "clientHolidays"]);
 export function referenceTtl(name: ReferenceName): number {
   return MONEY_TABLES.has(name) ? REFERENCE_MONEY_TTL_MS : REFERENCE_TTL_MS;
 }

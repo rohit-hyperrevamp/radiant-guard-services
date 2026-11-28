@@ -18,7 +18,7 @@ import { fetchAllPages, fetchForIds, fetchInChunks, runBulk } from "@/lib/supaba
 import { loadAllFormulaMasters, type FormulaMaster } from "@/lib/contract-hydrate";
 import { ADDITION_COLS, DEDUCTION_COLS, loadInvoiceGlobals, type InvoiceGlobals } from "@/lib/invoice-engine";
 import { fetchAllRevisions } from "@/lib/invoice-engine-bulk";
-import { fetchEnabledPublicHolidaysWith, type PublicHoliday } from "@/lib/public-holidays";
+import { fetchEnabledPublicHolidaysWith, fetchClientHolidaysWith, type ClientHoliday, type PublicHoliday } from "@/lib/public-holidays";
 import { fetchPlatformFlag, PLATFORM_SETTING_KEYS } from "@/lib/platform-settings";
 import type { RateRevisionRow } from "@/lib/rate-revisions";
 import { REFERENCE_QK } from "@/lib/reference-data";
@@ -74,6 +74,7 @@ export type FinanceSharedContext = {
   masters: Map<string, FormulaMaster>;
   invoiceGlobals: InvoiceGlobals;
   holidays: PublicHoliday[];
+  clientHolidays: ClientHoliday[];
   esiRoundUp: boolean;
   revisions: RateRevisionRow[] | null;
   /** Active additions in the window (both engines' columns), ordered by id. */
@@ -89,16 +90,17 @@ export async function loadFinanceSharedContext(window: FinanceWindow, db: Db = s
   const dedFrom = payrollDeductionFrom(window.minStart);
   const all = (q: (a: number, b: number) => unknown) => fetchInChunks<Row>(["x"], (_c, a, b) => q(a, b) as never);
   const mastersP = loadAllFormulaMasters(db);
-  const [masters, invoiceGlobals, holidays, esiRoundUp, revisions, additions, deductions] = await Promise.all([
+  const [masters, invoiceGlobals, holidays, clientHolidays, esiRoundUp, revisions, additions, deductions] = await Promise.all([
     mastersP,
     loadInvoiceGlobals([], null, mastersP, db),
     fetchEnabledPublicHolidaysWith(db),
+    fetchClientHolidaysWith(db),
     fetchPlatformFlag(PLATFORM_SETTING_KEYS.esiRoundUp, true, db),
     fetchAllRevisions(db),
     all((a, b) => db.from("additions" as never).select(ADDITION_READ).eq("status", "active").lte("addition_date", window.maxEnd).or(additionLowerBound(window.minStart)).order("id").range(a, b)),
     all((a, b) => db.from("deductions" as never).select(DEDUCTION_READ).eq("status", "active").gte("deduction_date", dedFrom).lte("deduction_date", window.maxEnd).order("id").range(a, b)),
   ]);
-  return { db, window: { ...window, dedFrom }, masters, invoiceGlobals, holidays, esiRoundUp, revisions, additions, deductions, memo: new Map() };
+  return { db, window: { ...window, dedFrom }, masters, invoiceGlobals, holidays, clientHolidays, esiRoundUp, revisions, additions, deductions, memo: new Map() };
 }
 
 /** Usable for a batch read through `db` over [minStart, maxEnd]? */

@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MONTH_NAMES, type PublicHoliday, QK_PUBLIC_HOLIDAYS } from "@/lib/public-holidays";
+import { ClientHolidaysSection } from "@/components/ClientHolidaysSection";
 
 export const Route = createFileRoute("/admin/public-holiday-manager")({
   component: PublicHolidayManagerPage,
@@ -316,6 +317,8 @@ function PublicHolidayManagerPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ClientHolidaysSection />
     </div>
   );
 }

@@ -9,7 +9,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ActiveClientBoundary } from "@/components/ActiveClientBoundary";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { usePublicHolidays, holidayMapForDates } from "@/lib/public-holidays";
+import { usePublicHolidays, useClientHolidays, holidayMapForDates } from "@/lib/public-holidays";
 import {
   CalendarDays,
   ChevronLeft,
@@ -463,6 +463,7 @@ function MusterRollPage() {
   });
 
   const publicHolidays = usePublicHolidays();
+  const clientHolidays = useClientHolidays();
   const phQc = useQueryClient();
   const phToggle = useMutation({
     mutationFn: async (next: boolean) => {
@@ -953,8 +954,10 @@ function MusterRollPage() {
       holidayMapForDates(
         periodCells.map((c) => c.date),
         publicHolidays,
+        clientHolidays,
+        unitId,
       ),
-    [periodCells, publicHolidays],
+    [periodCells, publicHolidays, clientHolidays, unitId],
   );
 
   // Max "P" days allowed per designation for this period, driven by the

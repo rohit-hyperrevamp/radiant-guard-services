@@ -4,6 +4,7 @@ exports[`invoice detail loader > produces the same invoice as the original seque
 {
   "globals": {
     "bdbs": [],
+    "clientHolidays": [],
     "codes": [
       {
         "code": "P",

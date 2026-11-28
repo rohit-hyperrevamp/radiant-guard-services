@@ -64,3 +64,4 @@
 
 - Dashboard/registers share useRegisterPeriods/register-summary; links carry month/window and reset filters. dashboard-master-counts uses current directory eligibility to avoid inflated totals.
 - Attendance Card: `attendance_card_copies` + private `attendance-cards` bucket (5-minute signed links) holds the client card each sheet was checked against, keyed by unit + exact sheet period; read needs Attendance view and unit visibility, upload Attendance edit — shown on the sheet as "Attendance card › View attendance".
+- Client holidays (`client_holidays`: dated, per site via unit_ids) extend the global `public_holidays` list for unit PH credit; every reader goes through `holidayMapForDates(dates, holidays, clientHolidays, unitId)` (sheet, payroll page/engine, invoice engine, finance context) and `dashboard_pnl_inputs` — keep them in step. A PH mark counts 0 when the site has PH off; a worked holiday is P + Inclusions credit, never a PH code.

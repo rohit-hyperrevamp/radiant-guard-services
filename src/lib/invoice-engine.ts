@@ -40,7 +40,7 @@ import { applyRateRevisionsWith, fetchRevisions, rateSegmentsWith, type RateRevi
 import { formulaMasterIds, hydrateFormulasWith, type FormulaMaster } from "@/lib/contract-hydrate";
 import { refreshBillingAddOns } from "@/lib/contract-billing-addons";
 import { resolvePayrollDayCount } from "@/lib/payroll-days";
-import { enabledPublicHolidaysFromRows, holidayMapForDates, type PublicHoliday } from "@/lib/public-holidays";
+import { clientHolidaysFromRows, enabledPublicHolidaysFromRows, holidayMapForDates, type ClientHoliday, type PublicHoliday } from "@/lib/public-holidays";
 import { isSplit, totalsForPart, type InvoiceSplit } from "@/lib/invoice-split";
 import { contractMonthlyBilling } from "@/lib/contract-rate-display";
 
@@ -111,6 +111,8 @@ export type InvoiceGlobals = {
   designationNames: Map<string, string>;
   masters: Map<string, FormulaMaster>;
   publicHolidays: PublicHoliday[];
+  /** Client / site dated holidays (client_holidays); missing = none. */
+  clientHolidays?: ClientHoliday[];
   phTypeIds: Set<string>;
   ptSlabs: PtSlabLike[];
   pincodeRanges: PincodeRangeLike[];
@@ -185,7 +187,7 @@ export function computeInvoiceUnit(src: InvoiceUnitData, g: InvoiceGlobals) {
   const unitPh = src.unitPh;
   const phConfig = (() => {
     if (!unitPh?.enabled) return null;
-    const map = holidayMapForDates(periodDates, g.publicHolidays);
+    const map = holidayMapForDates(periodDates, g.publicHolidays, g.clientHolidays, unitId);
     if (map.size === 0) return null;
     return { dates: Array.from(map.keys()), multiplier: unitPh.multiplier };
   })();
@@ -931,7 +933,7 @@ export async function loadInvoiceGlobals(resources: Row[] = [], revisions: RateR
   const pick = <T,>(rows: Row[], cols: string[]) => rows.map((r) => Object.fromEntries(cols.map((c) => [c, r[c]])) as T);
   const ref = <T,>(name: ReferenceName, cols: string[], keep: (r: Row) => boolean = () => true) =>
     getReference<Row>(name).then((rows) => pick<T>(rows.filter(keep), cols));
-  const [codes, pdbs, bdbs, designations, holidays, addTypes, ptSlabs, pincodeRanges, lwfRows] = await Promise.all([
+  const [codes, pdbs, bdbs, designations, holidays, clientHolidays, addTypes, ptSlabs, pincodeRanges, lwfRows] = await Promise.all([
     shared
       ? ref<AttendanceCodeLike>("attendanceCodes", ["code", "counts_as_present", "is_paid", "day_value"], (r) => r.enabled === true)
       : db.from("attendance_codes").select("code, counts_as_present, is_paid, day_value").eq("enabled", true).then((r) => (checkedQueryData(r) ?? []) as AttendanceCodeLike[]),
@@ -948,6 +950,9 @@ export async function loadInvoiceGlobals(resources: Row[] = [], revisions: RateR
     shared
       ? getReference<Row>("publicHolidays").then(enabledPublicHolidaysFromRows)
       : db.from("public_holidays" as never).select("id,name,holiday_month,holiday_day,enabled,sort_order").eq("enabled", true).order("holiday_month").order("holiday_day").then((r) => enabledPublicHolidaysFromRows((checkedQueryData(r) ?? []) as unknown as Row[])),
+    shared
+      ? getReference<Row>("clientHolidays").then(clientHolidaysFromRows)
+      : db.from("client_holidays" as never).select("id,holiday_date,name,unit_ids,enabled").eq("enabled", true).then((r) => clientHolidaysFromRows((checkedQueryData(r) ?? []) as unknown as Row[])),
     shared
       ? ref<{ id: string; code: string | null }>("additionTypes", ["id", "code"])
       : db.from("addition_types").select("id, code").then((r) => (checkedQueryData(r) ?? []) as { id: string; code: string | null }[]),
@@ -969,6 +974,7 @@ export async function loadInvoiceGlobals(resources: Row[] = [], revisions: RateR
     designationNames: new Map(designations.map((d) => [d.id, d.name ?? ""])),
     masters,
     publicHolidays: holidays,
+    clientHolidays,
     phTypeIds: new Set(addTypes.filter((t) => (t.code ?? "").toLowerCase() === "paid_holidays").map((t) => t.id)),
     ptSlabs,
     pincodeRanges,

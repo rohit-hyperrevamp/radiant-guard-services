@@ -1191,7 +1191,7 @@ export async function computePayrollUnitsTotals(
   const ids = Array.from(periods.keys());
   if (!ids.length) return out;
   if (db === supabase) await supabaseSessionReady();
-  const [{ fetchEnabledPublicHolidaysWith, holidayMapForDates }, { fetchPlatformFlag, PLATFORM_SETTING_KEYS }, bulk, { applyRateRevisionsWith }, { hydrateFormulasWith, loadAllFormulaMasters }, { fetchInChunks }, { visibleAttendanceCandidateIds }, fsc] = await Promise.all([
+  const [{ fetchEnabledPublicHolidaysWith, fetchClientHolidaysWith, holidayMapForDates }, { fetchPlatformFlag, PLATFORM_SETTING_KEYS }, bulk, { applyRateRevisionsWith }, { hydrateFormulasWith, loadAllFormulaMasters }, { fetchInChunks }, { visibleAttendanceCandidateIds }, fsc] = await Promise.all([
     import("@/lib/public-holidays"),
     import("@/lib/platform-settings"),
     import("@/lib/invoice-engine-bulk"),
@@ -1220,8 +1220,9 @@ export async function computePayrollUnitsTotals(
     getReference<AnyRow>(name).then((rows) => rows.filter(keep).map(pickCols(cols)) as unknown as T[]);
   const direct = <T,>(q: PromiseLike<{ data: unknown; error: { message: string } | null }>) =>
     Promise.resolve(q).then((r) => { if (r.error) throw r.error; return (r.data ?? []) as T[]; });
-  const [holidays, esiRoundUp, ptSlabs, pincodeRanges, lwfRows, inputs, revisions, masters, codes, addTypes, pdbs, desigs, additions, deductions] = await Promise.all([
+  const [holidays, clientHolidays, esiRoundUp, ptSlabs, pincodeRanges, lwfRows, inputs, revisions, masters, codes, addTypes, pdbs, desigs, additions, deductions] = await Promise.all([
     sc ? fsc.contextCopy(sc.holidays) : fetchEnabledPublicHolidaysWith(db),
+    sc ? fsc.contextCopy(sc.clientHolidays) : fetchClientHolidaysWith(db),
     sc ? sc.esiRoundUp : fetchPlatformFlag(PLATFORM_SETTING_KEYS.esiRoundUp, true, db),
     shared
       ? ref<PtSlabLike>("ptSlabs", ["id", "state", "region_label", "salary_min", "salary_max", "tax_per_month", "gender"])
@@ -1382,7 +1383,7 @@ export async function computePayrollUnitsTotals(
         excludedDays: ((u?.ph_excluded_days ?? []) as unknown[]).map(String),
         dayValue: !u?.ph_enabled ? 0 : dv == null || Number.isNaN(Number(dv)) ? null : Number(dv),
       };
-      const phMap = unitPh.enabled ? holidayMapForDates(periodDates, holidays) : new Map();
+      const phMap = unitPh.enabled ? holidayMapForDates(periodDates, holidays, clientHolidays, x.unitId) : new Map();
       const phConfig = unitPh.enabled && phMap.size > 0 ? { dates: Array.from(phMap.keys()) as string[], multiplier: unitPh.multiplier } : null;
       const rows = await computePayrollUnitRows({
         unitId: x.unitId, start: x.start, end: x.end, periodDates,

@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { QK_PUBLIC_HOLIDAYS, fetchEnabledPublicHolidays, holidayMapForDates } from "@/lib/public-holidays";
+import { QK_PUBLIC_HOLIDAYS, QK_CLIENT_HOLIDAYS, fetchEnabledPublicHolidays, fetchClientHolidays, holidayMapForDates } from "@/lib/public-holidays";
 import { invalidateReference, useReference } from "@/lib/reference-data";
 import { supabaseSessionReady } from "@/lib/supabase-ready";
 import { useCurrentPermissions } from "@/lib/rbac";
@@ -217,6 +217,10 @@ function PayrollUnitPage() {
     queryKey: [...QK_PUBLIC_HOLIDAYS, "enabled"],
     queryFn: fetchEnabledPublicHolidays,
   });
+  const { data: clientHolidays } = useQuery({
+    queryKey: [...QK_CLIENT_HOLIDAYS, "enabled"],
+    queryFn: fetchClientHolidays,
+  });
   // Contract switch: count Weekly Off (WO) as Present days for this period.
   const woAsPresentQ = useQuery({
     queryKey: ["payroll-wo-as-present", unitId, start, end],
@@ -270,10 +274,10 @@ function PayrollUnitPage() {
   const unitPh = unitRead?.unitPh;
   const phConfig = useMemo(() => {
     if (!unitPh?.enabled) return null;
-    const map = holidayMapForDates(periodDates, publicHolidays ?? []);
+    const map = holidayMapForDates(periodDates, publicHolidays ?? [], clientHolidays, unitId);
     if (map.size === 0) return null;
     return { dates: Array.from(map.keys()), multiplier: unitPh.multiplier };
-  }, [unitPh, periodDates, publicHolidays]);
+  }, [unitPh, periodDates, publicHolidays, clientHolidays, unitId]);
 
   // PT slabs / pincode ranges / LWF master: shared reference cache (one fetch
   // per session for every screen), projected to the columns the engine reads.
@@ -520,7 +524,7 @@ function PayrollUnitPage() {
     // `unit` feeds PT state / pincode / EPF-cap policy and the unit PH settings;
     // public holidays feed PH credit — computing before they land produces a
     // wrong first render that only self-corrects on a hard refresh.
-    enabled: unit !== undefined && publicHolidays !== undefined && woAsPresentQ.isFetched && !esiRoundFlag.isLoading && !!ptSlabs && !!pincodeRanges && !!lwfRows,
+    enabled: unit !== undefined && publicHolidays !== undefined && clientHolidays !== undefined && woAsPresentQ.isFetched && !esiRoundFlag.isLoading && !!ptSlabs && !!pincodeRanges && !!lwfRows,
     // Always recompute from the live contract / attendance when the page opens,
     // so a contract edit shows up immediately (no 5-minute cache).
     staleTime: 0,
