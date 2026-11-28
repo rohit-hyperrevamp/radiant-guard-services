@@ -2931,3 +2931,15 @@ a.tile-aurora:hover, button.tile-aurora:hover, .tile-aurora[data-panel]:hover, .
   .dashboard-summary-tile { animation: none !important; }
   .tile-aurora { transition: none !important; }
 }
+
+/* Tiles nested inside a white card become soft grey inner panels (bento style). */
+:where(.bg-card) .tile-aurora:not(.tile-c-sky):not(.tile-c-violet) {
+  background: oklch(0.962 0 0) !important;
+  box-shadow: none;
+}
+:where(.bg-card) a.tile-aurora:not(.tile-c-sky):not(.tile-c-violet):hover,
+:where(.bg-card) button.tile-aurora:not(.tile-c-sky):not(.tile-c-violet):hover,
+:where(.bg-card) .tile-aurora[data-panel]:not(.tile-c-sky):not(.tile-c-violet):hover {
+  background: oklch(0.975 0 0) !important;
+  box-shadow: 0 16px 34px -24px rgb(0 0 0 / 0.25);
+}
