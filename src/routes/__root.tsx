@@ -118,7 +118,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@HyperRevamp" },
-      { name: "radiant-build", content: "2026-11-28-sync-check" },
     ],
     links: [
       { rel: "icon", type: "image/png", href: favicon },
