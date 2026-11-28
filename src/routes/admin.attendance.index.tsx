@@ -26,11 +26,12 @@ import { usePayrollWindowSelection } from "@/lib/use-payroll-window-selection";
 import { AttendanceComplianceBox } from "@/components/AttendanceComplianceBox";
 import { useCurrentPermissions } from "@/lib/rbac";
 
-
-
 const searchSchema = z.object({
-  window: z.string().optional(), month: z.coerce.number().optional(), year: z.coerce.number().optional(),
-  status: z.string().optional(), dashboard: z.boolean().optional(),
+  window: z.string().optional(),
+  month: z.coerce.number().optional(),
+  year: z.coerce.number().optional(),
+  status: z.string().optional(),
+  dashboard: z.boolean().optional(),
 });
 
 export const Route = createFileRoute("/admin/attendance/")({
@@ -38,9 +39,15 @@ export const Route = createFileRoute("/admin/attendance/")({
   head: () => ({
     meta: [
       { title: "Attendance | Radiant Guard Services" },
-      { name: "description", content: "Find units, select payroll periods, and manage attendance sheets." },
+      {
+        name: "description",
+        content: "Find units, select payroll periods, and manage attendance sheets.",
+      },
       { property: "og:title", content: "Attendance | Radiant Guard Services" },
-      { property: "og:description", content: "Find units, select payroll periods, and manage attendance sheets." },
+      {
+        property: "og:description",
+        content: "Find units, select payroll periods, and manage attendance sheets.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -100,23 +107,29 @@ function AttendanceUnitsPage() {
   const [orgFilter, setOrgFilter] = useSessionState<string[]>("attendance:orgFilter", []);
   const [unitFilter, setUnitFilter] = useSessionState<string[]>("attendance:unitFilter", []);
   const [stateFilter, setStateFilter] = useSessionState<string[]>("attendance:stateFilter", []);
-  const [statusFilter, setStatusFilter] = useSessionState<"all" | "open" | "in_progress" | "submitted" | "approved">("attendance:statusFilter", "all");
+  const [statusFilter, setStatusFilter] = useSessionState<
+    "all" | "open" | "in_progress" | "submitted" | "approved"
+  >("attendance:statusFilter", "all");
   useEffect(() => {
     if (!search.dashboard) return;
-    setQ(""); setOrgFilter([]); setUnitFilter([]);
+    setQ("");
+    setOrgFilter([]);
+    setUnitFilter([]);
     setStateFilter([]);
     const status = search.status ?? "all";
-    setStatusFilter(["all", "open", "in_progress", "submitted", "approved"].includes(status) ? status as "all" | "open" | "in_progress" | "submitted" | "approved" : "all");
+    setStatusFilter(
+      ["all", "open", "in_progress", "submitted", "approved"].includes(status)
+        ? (status as "all" | "open" | "in_progress" | "submitted" | "approved")
+        : "all",
+    );
   }, [search.dashboard, search.month, search.year, search.window, search.status]);
-
-
-
-
 
   // First paint from the lite roster (no guard names); the full roster (names
   // for search) follows right after, or is used at once when already cached.
   const queryClient = useQueryClient();
-  const [hadFull] = useState(() => queryClient.getQueryData<CharterPageData>(CHARTER_UNITS_QK) !== undefined);
+  const [hadFull] = useState(
+    () => queryClient.getQueryData<CharterPageData>(CHARTER_UNITS_QK) !== undefined,
+  );
   const liteQ = useQuery({
     queryKey: CHARTER_UNITS_LITE_QK,
     queryFn: fetchCharterUnitsLite,
@@ -137,7 +150,6 @@ function AttendanceUnitsPage() {
   const error = data ? null : (fullQ.error ?? null);
   const isLoading = !data && !error;
 
-
   const foScope = useOperationalUnitScope();
   const { canSwitch } = useCurrentPermissions();
   const rawUnits = data?.units ?? [];
@@ -145,9 +157,16 @@ function AttendanceUnitsPage() {
     () => (foScope.isScoped ? rawUnits.filter((u) => foScope.unitIds.has(u.id)) : rawUnits),
     [rawUnits, foScope.isScoped, foScope.unitIds],
   );
-  const periodSelection = usePayrollWindowSelection(units.map((unit) => unit.id), search, "attendance");
+  const periodSelection = usePayrollWindowSelection(
+    units.map((unit) => unit.id),
+    search,
+    "attendance",
+  );
   const { monthIdx, year, selectedKey, windowsByUnit, unitIdsForWindow } = periodSelection;
-  const windowUnits = useMemo(() => units.filter((unit) => unitIdsForWindow.has(unit.id)), [units, unitIdsForWindow]);
+  const windowUnits = useMemo(
+    () => units.filter((unit) => unitIdsForWindow.has(unit.id)),
+    [units, unitIdsForWindow],
+  );
   const unitOptions = useMemo(
     () =>
       windowUnits.filter(
@@ -169,21 +188,22 @@ function AttendanceUnitsPage() {
     return all.filter((o) => allowed.has(o.id));
   }, [data?.organizations, windowUnits]);
   const summary = useMemo(
-    () => (foScope.isScoped
-      ? { organizations: organizations.length, units: windowUnits.length }
-      : { organizations: new Set(windowUnits.map((u) => u.customer_id)).size, units: windowUnits.length }),
+    () =>
+      foScope.isScoped
+        ? { organizations: organizations.length, units: windowUnits.length }
+        : {
+            organizations: new Set(windowUnits.map((u) => u.customer_id)).size,
+            units: windowUnits.length,
+          },
     [foScope.isScoped, organizations, windowUnits],
   );
-
-
-
-
 
   // Shared search rules (src/lib/search-match.ts), deferred for large rosters.
   const deferredQ = useDeferredValue(q);
   const filtered = useMemo(() => {
     const byFilters = windowUnits.filter((u) => {
-      if (orgFilter.length > 0 && !orgFilter.includes(u.customer_id || u.customer_name)) return false;
+      if (orgFilter.length > 0 && !orgFilter.includes(u.customer_id || u.customer_name))
+        return false;
       if (unitFilter.length > 0 && !unitFilter.includes(u.id)) return false;
       if (stateFilter.length > 0 && !stateFilter.includes(stOf(u))) return false;
       return true;
@@ -191,9 +211,12 @@ function AttendanceUnitsPage() {
     return filterCharterUnitsBySearch(byFilters, deferredQ);
   }, [deferredQ, orgFilter, unitFilter, stateFilter, windowUnits]);
 
-  const anyFilter = orgFilter.length > 0 || unitFilter.length > 0 || stateFilter.length > 0 || statusFilter !== "all" || q.trim().length > 0;
-
-
+  const anyFilter =
+    orgFilter.length > 0 ||
+    unitFilter.length > 0 ||
+    stateFilter.length > 0 ||
+    statusFilter !== "all" ||
+    q.trim().length > 0;
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -206,7 +229,11 @@ function AttendanceUnitsPage() {
 
       <div className="flex items-center justify-between gap-2">
         <div className="scrollbar-hide flex min-w-0 flex-1 items-center gap-2 overflow-x-auto pb-0.5">
-          <PayrollWindowPeriodPicker options={periodSelection.options} selectedKey={selectedKey} onWindowChange={periodSelection.selectWindow} />
+          <PayrollWindowPeriodPicker
+            options={periodSelection.options}
+            selectedKey={selectedKey}
+            onWindowChange={periodSelection.selectWindow}
+          />
           <MonthYearPicker
             className="border-primary/40 bg-primary/5 ring-1 ring-primary/15 dark:border-primary/50 dark:bg-primary/10"
             value={`${year}-${String(monthIdx + 1).padStart(2, "0")}`}
@@ -216,21 +243,17 @@ function AttendanceUnitsPage() {
             }}
           />
         </div>
-        <Button asChild size="icon" variant="outline" className="h-10 w-10 shrink-0 rounded-lg sm:h-8 sm:w-auto sm:gap-1.5 sm:rounded-full sm:px-3 sm:text-xs">
+        <Button
+          asChild
+          size="icon"
+          variant="outline"
+          className="h-10 w-10 shrink-0 rounded-lg sm:h-8 sm:w-auto sm:gap-1.5 sm:rounded-full sm:px-3 sm:text-xs"
+        >
           <Link to="/admin/attendance/employee">
             <Search className="h-4 w-4" /> <span className="hidden sm:inline">Employee lookup</span>
           </Link>
         </Button>
       </div>
-
-      {canSwitch("attendance", "compliance") && (
-        <AttendanceComplianceBox
-          year={year}
-          monthIdx={monthIdx}
-          windowKey={selectedKey}
-          windowLabel={selectedKey === "all" ? "All windows" : (periodSelection.selectedWindow?.label ?? selectedKey)}
-        />
-      )}
 
       <div className="overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm sm:rounded-3xl">
         <div className="border-b border-border/60 px-3 py-2.5 sm:space-y-3 sm:px-5 sm:py-5">
@@ -239,7 +262,8 @@ function AttendanceUnitsPage() {
               Attendance charter
             </h2>
             <p className="hidden text-sm leading-relaxed text-muted-foreground sm:block">
-               Committed vs actual deployment with period-to-date attendance. Open any unit for its full muster roll.
+              Committed vs actual deployment with period-to-date attendance. Open any unit for its
+              full muster roll.
             </p>
           </div>
         </div>
@@ -249,7 +273,9 @@ function AttendanceUnitsPage() {
             <ListSkeleton rows={5} />
           ) : error ? (
             <div className="px-5 py-12 text-center text-sm text-destructive">
-              {error instanceof Error ? error.message : "Could not load attendance units right now."}
+              {error instanceof Error
+                ? error.message
+                : "Could not load attendance units right now."}
             </div>
           ) : (
             <AttendanceCharter
@@ -262,6 +288,21 @@ function AttendanceUnitsPage() {
               windowsByUnit={windowsByUnit}
               statusFilter={statusFilter}
               onStatusFilterChange={setStatusFilter}
+              extraTiles={
+                canSwitch("attendance", "compliance") ? (
+                  <AttendanceComplianceBox
+                    variant="tile"
+                    year={year}
+                    monthIdx={monthIdx}
+                    windowKey={selectedKey}
+                    windowLabel={
+                      selectedKey === "all"
+                        ? "All windows"
+                        : (periodSelection.selectedWindow?.label ?? selectedKey)
+                    }
+                  />
+                ) : undefined
+              }
               filters={
                 <div className="space-y-2">
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -273,7 +314,9 @@ function AttendanceUnitsPage() {
                         setUnitFilter((prev) =>
                           prev.filter((id) => {
                             const u = windowUnits.find((x) => x.id === id);
-                            return !u || v.length === 0 || v.includes(u.customer_id || u.customer_name);
+                            return (
+                              !u || v.length === 0 || v.includes(u.customer_id || u.customer_name)
+                            );
                           }),
                         );
                         setStateFilter((prev) =>
@@ -323,8 +366,9 @@ function AttendanceUnitsPage() {
                   {anyFilter && (
                     <div className="flex items-center justify-between rounded-xl bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
                       <span>
-                        Filtered to <span className="font-bold text-foreground">{filtered.length}</span> of{" "}
-                         {windowUnits.length} units
+                        Filtered to{" "}
+                        <span className="font-bold text-foreground">{filtered.length}</span> of{" "}
+                        {windowUnits.length} units
                       </span>
                       <Button
                         variant="ghost"
@@ -345,7 +389,6 @@ function AttendanceUnitsPage() {
                 </div>
               }
             />
-
           )}
         </div>
       </div>

@@ -11,12 +11,29 @@ import { CharterPagination } from "@/components/CharterPagination";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { downloadCsv } from "@/lib/csv-export";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { fetchWorkforceCoverage, useWorkforceCoverage, type UnitCoverage } from "@/components/WorkforceCoverage";
+import {
+  fetchWorkforceCoverage,
+  useWorkforceCoverage,
+  type UnitCoverage,
+} from "@/components/WorkforceCoverage";
 import { fetchAttendanceTotalsForPeriod } from "@/lib/attendance-fetch";
 import { fetchShiftHoursMap, shiftHoursFor, DEFAULT_SHIFT_HOURS } from "@/lib/shift-hours";
 import {
@@ -59,7 +76,12 @@ function guardCount(u: CharterUnit): number {
 
 export type AttendanceStatusFilter = "all" | "open" | "in_progress" | "submitted" | "approved";
 
-type CodeRow = { code: string; counts_as_present: boolean; is_paid: boolean; day_value: number | string | null };
+type CodeRow = {
+  code: string;
+  counts_as_present: boolean;
+  is_paid: boolean;
+  day_value: number | string | null;
+};
 
 type PersonStat = {
   id: string;
@@ -133,6 +155,7 @@ export function AttendanceCharter({
   windowsByUnit,
   statusFilter = "all",
   onStatusFilterChange,
+  extraTiles,
 }: {
   units: CharterUnit[];
   monthIdx: number;
@@ -144,8 +167,9 @@ export function AttendanceCharter({
   windowsByUnit: Map<string, PayrollWindow>;
   statusFilter?: AttendanceStatusFilter;
   onStatusFilterChange?: (value: AttendanceStatusFilter) => void;
+  /** Extra square tiles shown in the same row (e.g. Compliance). */
+  extraTiles?: ReactNode;
 }) {
-
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   // Search first, then paginate, and only then load period-to-date attendance.
@@ -167,7 +191,9 @@ export function AttendanceCharter({
   const filteredUnits = useMemo(
     () =>
       matchedUnits.filter(
-        (unit) => !outsideContract.has(unit.id) && matchesAttendanceStatus(allStatusQ.data?.get(unit.id), statusFilter),
+        (unit) =>
+          !outsideContract.has(unit.id) &&
+          matchesAttendanceStatus(allStatusQ.data?.get(unit.id), statusFilter),
       ),
     [allStatusQ.data, matchedUnits, statusFilter, outsideContract],
   );
@@ -210,12 +236,10 @@ export function AttendanceCharter({
   const scanJobsQ = useQuery({
     queryKey: [SCAN_JOBS_QK, unitIds.join(",")],
     enabled: unitIds.length > 0,
-    refetchInterval: (q) => ((q.state.data?.size ?? 0) > 0 ? SCAN_POLL_ACTIVE_MS : SCAN_POLL_IDLE_MS),
+    refetchInterval: (q) =>
+      (q.state.data?.size ?? 0) > 0 ? SCAN_POLL_ACTIVE_MS : SCAN_POLL_IDLE_MS,
     queryFn: () => fetchRunningScanJobs(unitIds),
   });
-
-
-
 
   // Coverage for the visible page only (not every contract in the company).
   const { data: coverage = [] } = useWorkforceCoverage(unitIds);
@@ -231,7 +255,7 @@ export function AttendanceCharter({
       const { data } = await supabase
         .from("attendance_codes" as never)
         .select("code, counts_as_present, is_paid, day_value");
-      return ((data ?? []) as unknown) as CodeRow[];
+      return (data ?? []) as unknown as CodeRow[];
     },
   });
 
@@ -256,7 +280,11 @@ export function AttendanceCharter({
       }
       const pages = await Promise.all(
         Array.from(groups.values()).map((group) =>
-          fetchAttendanceTotalsForPeriod({ unitIds: group.unitIds, start: group.start, end: group.end }),
+          fetchAttendanceTotalsForPeriod({
+            unitIds: group.unitIds,
+            start: group.start,
+            end: group.end,
+          }),
         ),
       );
       return pages.flat();
@@ -282,7 +310,8 @@ export function AttendanceCharter({
       if (!unitId) continue;
       if (!out.has(unitId)) out.set(unitId, new Map());
       const bucket = out.get(unitId)!;
-      const shift = shiftHoursFor(shiftQ.data, unitId, e.designation_id, e.candidate_id) || DEFAULT_SHIFT_HOURS;
+      const shift =
+        shiftHoursFor(shiftQ.data, unitId, e.designation_id, e.candidate_id) || DEFAULT_SHIFT_HOURS;
       let person = bucket.get(e.candidate_id);
       if (!person) {
         person = {
@@ -299,7 +328,9 @@ export function AttendanceCharter({
       const code = codeMap.get(e.code);
       const raw = code?.day_value;
       const dayValue = raw == null || Number.isNaN(Number(raw)) ? 1 : Math.max(0, Number(raw));
-      const counted = (code ? (code.counts_as_present || code.is_paid ? dayValue : 0) : 0) * ((e as { days?: number }).days ?? 1);
+      const counted =
+        (code ? (code.counts_as_present || code.is_paid ? dayValue : 0) : 0) *
+        ((e as { days?: number }).days ?? 1);
       const ot = Number(e.ot_hours) || 0;
       person.presentDays += counted;
       person.otDays += ot;
@@ -309,47 +340,54 @@ export function AttendanceCharter({
   }, [entriesQ.data, shiftQ.data, codeMap, nameById, periodsByUnit]);
 
   const rows = useMemo(() => {
-    return pageUnits
-      .map((u) => {
-        const cov = coverageByUnit.get(u.id);
-        const committed = cov?.committed ?? 0;
-        const actual = cov?.actual ?? guardCount(u);
-        const period = periodsByUnit.get(u.id) ?? payrollPeriodForMonth(year, monthIdx);
-        const unitShift = shiftHoursFor(shiftQ.data, u.id, null) || DEFAULT_SHIFT_HOURS;
-        const people = Array.from(statsByUnit.get(u.id)?.values() ?? []).sort((a, b) =>
-          a.name.localeCompare(b.name),
-        );
-        // Projected man-hours come from the contract: committed heads × elapsed days × shift.
-        const headsForProjection = committed > 0 ? committed : actual;
-        const projectedHours = headsForProjection * period.elapsedDays * unitShift;
-        const actualHours = people.reduce((s, p) => s + p.actualHours, 0);
-        const otHours = people.reduce((s, p) => s + p.otDays * p.shiftHours, 0);
-        const status: PeriodStatus = allStatusQ.data?.get(u.id) ?? {
-          unitId: u.id,
-          attendance: "none",
-          handedOff: false,
-          payroll: "open",
-          invoice: "open",
-          runId: null,
-        };
-        return {
-          unit: u,
-          contractCode: cov?.contractCode ?? u.contract_codes[0] ?? "—",
-          lines: cov?.lines ?? [],
-          committed,
-          actual,
-          unitShift,
-          people,
-          projectedHours,
-          actualHours,
-          otHours,
-          period,
-          status,
-          mtdPct: pct(actualHours, projectedHours),
-        };
-      });
-  }, [pageUnits, coverageByUnit, statsByUnit, shiftQ.data, allStatusQ.data, periodsByUnit, year, monthIdx]);
-
+    return pageUnits.map((u) => {
+      const cov = coverageByUnit.get(u.id);
+      const committed = cov?.committed ?? 0;
+      const actual = cov?.actual ?? guardCount(u);
+      const period = periodsByUnit.get(u.id) ?? payrollPeriodForMonth(year, monthIdx);
+      const unitShift = shiftHoursFor(shiftQ.data, u.id, null) || DEFAULT_SHIFT_HOURS;
+      const people = Array.from(statsByUnit.get(u.id)?.values() ?? []).sort((a, b) =>
+        a.name.localeCompare(b.name),
+      );
+      // Projected man-hours come from the contract: committed heads × elapsed days × shift.
+      const headsForProjection = committed > 0 ? committed : actual;
+      const projectedHours = headsForProjection * period.elapsedDays * unitShift;
+      const actualHours = people.reduce((s, p) => s + p.actualHours, 0);
+      const otHours = people.reduce((s, p) => s + p.otDays * p.shiftHours, 0);
+      const status: PeriodStatus = allStatusQ.data?.get(u.id) ?? {
+        unitId: u.id,
+        attendance: "none",
+        handedOff: false,
+        payroll: "open",
+        invoice: "open",
+        runId: null,
+      };
+      return {
+        unit: u,
+        contractCode: cov?.contractCode ?? u.contract_codes[0] ?? "—",
+        lines: cov?.lines ?? [],
+        committed,
+        actual,
+        unitShift,
+        people,
+        projectedHours,
+        actualHours,
+        otHours,
+        period,
+        status,
+        mtdPct: pct(actualHours, projectedHours),
+      };
+    });
+  }, [
+    pageUnits,
+    coverageByUnit,
+    statsByUnit,
+    shiftQ.data,
+    allStatusQ.data,
+    periodsByUnit,
+    year,
+    monthIdx,
+  ]);
 
   const [exportOpen, setExportOpen] = useState(false);
   const [exportSel, setExportSel] = useState<Set<string>>(new Set());
@@ -374,7 +412,8 @@ export function AttendanceCharter({
     try {
       const ids = chosen.map((u) => u.id);
       const periods = new Map<string, ReturnType<typeof payrollPeriodForMonth>>();
-      for (const id of ids) periods.set(id, payrollPeriodForMonth(year, monthIdx, windowsByUnit.get(id)));
+      for (const id of ids)
+        periods.set(id, payrollPeriodForMonth(year, monthIdx, windowsByUnit.get(id)));
       const groups = new Map<string, { start: string; end: string; unitIds: string[] }>();
       for (const [id, p] of periods) {
         const k = `${p.start}|${p.mtdEnd}`;
@@ -384,7 +423,11 @@ export function AttendanceCharter({
       }
       const [shifts, entryPages, exportCoverage] = await Promise.all([
         fetchShiftHoursMap(ids),
-        Promise.all(Array.from(groups.values()).map((g) => fetchAttendanceTotalsForPeriod({ unitIds: g.unitIds, start: g.start, end: g.end }))),
+        Promise.all(
+          Array.from(groups.values()).map((g) =>
+            fetchAttendanceTotalsForPeriod({ unitIds: g.unitIds, start: g.start, end: g.end }),
+          ),
+        ),
         fetchWorkforceCoverage(ids),
       ]);
       const exportCoverageByUnit = new Map(exportCoverage.map((c) => [c.unitId, c]));
@@ -393,11 +436,14 @@ export function AttendanceCharter({
         const uid = e.unit_id ?? "";
         if (!uid) continue;
         const a = agg.get(uid) ?? { actual: 0, ot: 0, people: new Set<string>() };
-        const shift = shiftHoursFor(shifts, uid, e.designation_id, e.candidate_id) || DEFAULT_SHIFT_HOURS;
+        const shift =
+          shiftHoursFor(shifts, uid, e.designation_id, e.candidate_id) || DEFAULT_SHIFT_HOURS;
         const code = codeMap.get(e.code);
         const raw = code?.day_value;
         const dv = raw == null || Number.isNaN(Number(raw)) ? 1 : Math.max(0, Number(raw));
-        const counted = (code ? (code.counts_as_present || code.is_paid ? dv : 0) : 0) * ((e as { days?: number }).days ?? 1);
+        const counted =
+          (code ? (code.counts_as_present || code.is_paid ? dv : 0) : 0) *
+          ((e as { days?: number }).days ?? 1);
         const ot = Number(e.ot_hours) || 0;
         a.actual += counted * shift + ot * shift;
         a.ot += ot * shift;
@@ -447,7 +493,12 @@ export function AttendanceCharter({
     return { total: matchedUnits.length - outsideContract.size, ...statusCounts };
   }, [matchedUnits.length, outsideContract.size, statusCounts]);
 
-  if (registerPeriods.error) return <div className="py-6 text-sm text-destructive">Attendance statuses could not load. Please try again.</div>;
+  if (registerPeriods.error)
+    return (
+      <div className="py-6 text-sm text-destructive">
+        Attendance statuses could not load. Please try again.
+      </div>
+    );
 
   return (
     <div className="space-y-3 sm:space-y-4">
@@ -459,7 +510,13 @@ export function AttendanceCharter({
           icon={Building2}
           accent="violet"
         />
-        <CharterTile label="Clients" sub="sites being marked" countTo={units.length} icon={MapPinned} accent="cyan" />
+        <CharterTile
+          label="Clients"
+          sub="sites being marked"
+          countTo={units.length}
+          icon={MapPinned}
+          accent="cyan"
+        />
         <CharterTile
           label="Attendance"
           sub="sites in this payroll window"
@@ -472,10 +529,10 @@ export function AttendanceCharter({
             { label: "Approved", value: sheets.approved, tone: "done" },
           ]}
         />
+        {extraTiles}
       </CharterTileGrid>
 
       {filters}
-
 
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:flex sm:flex-wrap">
         <div className="relative min-w-0 sm:w-72">
@@ -488,8 +545,14 @@ export function AttendanceCharter({
           />
         </div>
         {onStatusFilterChange && (
-          <Select value={statusFilter} onValueChange={(value) => onStatusFilterChange(value as AttendanceStatusFilter)}>
-            <SelectTrigger className="h-9 w-[142px] rounded-lg sm:w-52 sm:rounded-xl" aria-label="Attendance status">
+          <Select
+            value={statusFilter}
+            onValueChange={(value) => onStatusFilterChange(value as AttendanceStatusFilter)}
+          >
+            <SelectTrigger
+              className="h-9 w-[142px] rounded-lg sm:w-52 sm:rounded-xl"
+              aria-label="Attendance status"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -503,19 +566,44 @@ export function AttendanceCharter({
         )}
         {onStatusFilterChange && (
           <div className="col-span-2 flex items-center gap-2 text-xs">
-            <button type="button" onClick={() => onStatusFilterChange("approved")} className="rounded-full border border-border px-2.5 py-1 hover:bg-muted">
-              <span className="font-semibold text-emerald-600">{allStatusQ.isLoading ? "…" : statusCounts.approved}</span> approved
+            <button
+              type="button"
+              onClick={() => onStatusFilterChange("approved")}
+              className="rounded-full border border-border px-2.5 py-1 hover:bg-muted"
+            >
+              <span className="font-semibold text-emerald-600">
+                {allStatusQ.isLoading ? "…" : statusCounts.approved}
+              </span>{" "}
+              approved
             </button>
-            <button type="button" onClick={() => onStatusFilterChange("submitted")} className="rounded-full border border-border px-2.5 py-1 hover:bg-muted">
-              <span className="font-semibold text-sky-600">{allStatusQ.isLoading ? "…" : statusCounts.submitted}</span> submitted
+            <button
+              type="button"
+              onClick={() => onStatusFilterChange("submitted")}
+              className="rounded-full border border-border px-2.5 py-1 hover:bg-muted"
+            >
+              <span className="font-semibold text-sky-600">
+                {allStatusQ.isLoading ? "…" : statusCounts.submitted}
+              </span>{" "}
+              submitted
             </button>
-            <button type="button" onClick={() => onStatusFilterChange("open")} className="rounded-full border border-border px-2.5 py-1 hover:bg-muted">
-              <span className="font-semibold text-destructive">{allStatusQ.isLoading ? "…" : statusCounts.open}</span> open
+            <button
+              type="button"
+              onClick={() => onStatusFilterChange("open")}
+              className="rounded-full border border-border px-2.5 py-1 hover:bg-muted"
+            >
+              <span className="font-semibold text-destructive">
+                {allStatusQ.isLoading ? "…" : statusCounts.open}
+              </span>{" "}
+              open
             </button>
           </div>
         )}
         <div className="hidden flex-1 sm:block" />
-        <Button variant="outline" className="col-span-2 h-9 w-fit rounded-lg sm:rounded-xl" onClick={openExportPicker}>
+        <Button
+          variant="outline"
+          className="col-span-2 h-9 w-fit rounded-lg sm:rounded-xl"
+          onClick={openExportPicker}
+        >
           <Download className="mr-1.5 h-4 w-4" /> Export
         </Button>
       </div>
@@ -524,9 +612,16 @@ export function AttendanceCharter({
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Export attendance</DialogTitle>
-            <DialogDescription>Pick the sites to include. All selected sites go into one file.</DialogDescription>
+            <DialogDescription>
+              Pick the sites to include. All selected sites go into one file.
+            </DialogDescription>
           </DialogHeader>
-          <Input value={exportSearch} onChange={(e) => setExportSearch(e.target.value)} placeholder="Search sites…" className="h-9" />
+          <Input
+            value={exportSearch}
+            onChange={(e) => setExportSearch(e.target.value)}
+            placeholder="Search sites…"
+            className="h-9"
+          />
           <label className="flex items-center gap-2 border-b border-border pb-2 text-sm font-medium">
             <Checkbox
               checked={allChecked}
@@ -541,7 +636,10 @@ export function AttendanceCharter({
           </label>
           <div className="max-h-72 space-y-1 overflow-y-auto">
             {exportList.map((u) => (
-              <label key={u.id} className="flex items-center gap-2 rounded px-1 py-1 text-sm hover:bg-muted">
+              <label
+                key={u.id}
+                className="flex items-center gap-2 rounded px-1 py-1 text-sm hover:bg-muted"
+              >
                 <Checkbox
                   checked={exportSel.has(u.id)}
                   onCheckedChange={(v) => {
@@ -550,13 +648,19 @@ export function AttendanceCharter({
                     setExportSel(next);
                   }}
                 />
-                <span className="truncate">{u.code} · {u.name}</span>
-                <span className="ml-auto truncate text-xs text-muted-foreground">{u.customer_name}</span>
+                <span className="truncate">
+                  {u.code} · {u.name}
+                </span>
+                <span className="ml-auto truncate text-xs text-muted-foreground">
+                  {u.customer_name}
+                </span>
               </label>
             ))}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setExportOpen(false)} disabled={exporting}>Cancel</Button>
+            <Button variant="outline" onClick={() => setExportOpen(false)} disabled={exporting}>
+              Cancel
+            </Button>
             <Button onClick={exportCsv} disabled={exporting || exportSel.size === 0}>
               {exporting ? "Preparing…" : `Export ${exportSel.size}`}
             </Button>
@@ -566,7 +670,7 @@ export function AttendanceCharter({
 
       {loading ? (
         <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-            Loading period-to-date attendance…
+          Loading period-to-date attendance…
         </div>
       ) : rows.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
@@ -609,12 +713,15 @@ export function AttendanceCharter({
                         <div className="mt-1.5 flex items-center gap-2">
                           <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
                             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
-                            Reading {Math.round(Number(scan.progress) || 0)}% · {formatRemaining(scan.eta_seconds)}
+                            Reading {Math.round(Number(scan.progress) || 0)}% ·{" "}
+                            {formatRemaining(scan.eta_seconds)}
                           </span>
                           <div className="h-1 w-full max-w-[220px] overflow-hidden rounded-full bg-muted">
                             <div
                               className="h-full rounded-full bg-primary transition-[width] duration-700"
-                              style={{ width: `${Math.max(2, Math.min(100, Number(scan.progress) || 0))}%` }}
+                              style={{
+                                width: `${Math.max(2, Math.min(100, Number(scan.progress) || 0))}%`,
+                              }}
                             />
                           </div>
                         </div>
@@ -630,7 +737,9 @@ export function AttendanceCharter({
                     </div>
 
                     <div className="hidden shrink-0 items-center gap-5 pr-1 text-sm tabular-nums sm:flex">
-                      <div className="w-24 shrink-0 truncate text-center font-semibold">{r.contractCode || "—"}</div>
+                      <div className="w-24 shrink-0 truncate text-center font-semibold">
+                        {r.contractCode || "—"}
+                      </div>
                       <span className="flex w-16 shrink-0 justify-center">
                         <span className="rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground">
                           {r.unitShift}h
@@ -641,11 +750,17 @@ export function AttendanceCharter({
                         <span className="text-muted-foreground">/{r.committed}</span>
                       </div>
                       <div className="flex w-[150px] shrink-0 justify-center">
-                        <AttendanceStatusBadge status={r.status.attendance} filled={loading ? undefined : r.people.length > 0} />
+                        <AttendanceStatusBadge
+                          status={r.status.attendance}
+                          filled={loading ? undefined : r.people.length > 0}
+                        />
                       </div>
                     </div>
                     <div className="flex shrink-0 items-center pr-1 sm:hidden">
-                      <AttendanceStatusBadge status={r.status.attendance} filled={loading ? undefined : r.people.length > 0} />
+                      <AttendanceStatusBadge
+                        status={r.status.attendance}
+                        filled={loading ? undefined : r.people.length > 0}
+                      />
                     </div>
                   </Link>
 
@@ -655,7 +770,9 @@ export function AttendanceCharter({
                     onClick={() => setExpanded((p) => ({ ...p, [r.unit.id]: !p[r.unit.id] }))}
                     className="flex w-11 shrink-0 items-center justify-center border-l border-border/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                   >
-                    <ChevronDown className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")} />
+                    <ChevronDown
+                      className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")}
+                    />
                   </button>
                 </div>
 
@@ -688,7 +805,7 @@ export function AttendanceCharter({
 
                     <div>
                       <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                          Period-to-date per employee
+                        Period-to-date per employee
                       </div>
                       {r.people.length === 0 ? (
                         <p className="rounded-xl border border-dashed border-border/60 bg-background/60 px-3 py-4 text-center text-xs text-muted-foreground">
@@ -699,7 +816,9 @@ export function AttendanceCharter({
                           <table className="w-full text-sm">
                             <thead>
                               <tr className="border-b border-border/60 text-[10px] uppercase tracking-wide text-muted-foreground">
-                                <th className="sticky left-0 z-10 bg-background px-3 py-2 text-left font-medium">Employee</th>
+                                <th className="sticky left-0 z-10 bg-background px-3 py-2 text-left font-medium">
+                                  Employee
+                                </th>
                                 <th className="px-2 py-2 text-right font-medium">Shift</th>
                                 <th className="px-2 py-2 text-right font-medium">Days</th>
                                 <th className="px-2 py-2 text-right font-medium">ED hrs</th>
@@ -710,14 +829,25 @@ export function AttendanceCharter({
                             </thead>
                             <tbody>
                               {r.people.map((p) => (
-                                <tr key={p.id} className="border-t border-border/50 hover:bg-muted/40">
-                                  <td className="sticky left-0 z-10 bg-background px-3 py-1.5 font-medium">{p.name}</td>
-                                  <td className="px-2 py-1.5 text-right tabular-nums text-muted-foreground">{p.shiftHours}h</td>
-                                  <td className="px-2 py-1.5 text-right tabular-nums">{p.presentDays}</td>
+                                <tr
+                                  key={p.id}
+                                  className="border-t border-border/50 hover:bg-muted/40"
+                                >
+                                  <td className="sticky left-0 z-10 bg-background px-3 py-1.5 font-medium">
+                                    {p.name}
+                                  </td>
+                                  <td className="px-2 py-1.5 text-right tabular-nums text-muted-foreground">
+                                    {p.shiftHours}h
+                                  </td>
+                                  <td className="px-2 py-1.5 text-right tabular-nums">
+                                    {p.presentDays}
+                                  </td>
                                   <td className="px-2 py-1.5 text-right tabular-nums">
                                     {Math.round(p.otDays * p.shiftHours)}
                                   </td>
-                                  <td className="px-2 py-1.5 text-right tabular-nums">{fmtHours(p.actualHours)}</td>
+                                  <td className="px-2 py-1.5 text-right tabular-nums">
+                                    {fmtHours(p.actualHours)}
+                                  </td>
                                   <td className="px-2 py-1.5 text-right tabular-nums text-muted-foreground">
                                     {fmtHours(p.projectedHours)}
                                   </td>

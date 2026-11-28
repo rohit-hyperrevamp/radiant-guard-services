@@ -73,12 +73,15 @@ export function AttendanceComplianceBox({
   monthIdx,
   windowKey,
   windowLabel,
+  variant = "row",
 }: {
   year: number;
   monthIdx: number;
   /** Page window key ("21-20") or "all". */
   windowKey: string;
   windowLabel: string;
+  /** "tile" renders a square charter tile (sits beside Organizations / Clients / Attendance). */
+  variant?: "row" | "tile";
 }) {
   const session = useHasSupabaseSession();
   const month = `${year}-${String(monthIdx + 1).padStart(2, "0")}-01`;
@@ -118,38 +121,80 @@ export function AttendanceComplianceBox({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        disabled={peopleQ.isLoading}
-        className="flex w-full items-center gap-3 rounded-xl border border-border/70 bg-card px-4 py-3 text-left shadow-sm transition hover:border-primary/40 hover:bg-primary/5 sm:rounded-2xl"
-      >
-        <span
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
-            count > 0 ? "bg-destructive/10 text-destructive" : "bg-emerald-500/10 text-emerald-600"
-          }`}
+      {variant === "tile" ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          disabled={peopleQ.isLoading}
+          data-panel="true"
+          className={`dashboard-summary-tile group tile-aurora ${count > 0 ? "tile-c-rose" : "tile-c-emerald"} relative flex h-[124px] min-w-0 snap-start flex-col overflow-hidden rounded-2xl border p-3 text-left sm:h-[164px] sm:p-5`}
         >
-          <ShieldAlert className="h-5 w-5" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Compliance
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <div className="dashboard-tile-title font-display text-[12px] font-medium leading-tight text-foreground sm:text-[15px]">
+                Compliance
+              </div>
+              <div className="mt-0.5 hidden truncate text-[11px] text-muted-foreground sm:block">
+                more than {COMPLIANCE_DUTY_LIMIT} duties in the period
+              </div>
+            </div>
+            <span
+              className={`chip-grad ${count > 0 ? "tile-c-rose" : "tile-c-emerald"} grid h-7 w-7 shrink-0 place-items-center rounded-full sm:h-9 sm:w-9`}
+            >
+              <ShieldAlert className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            </span>
+          </div>
+          <div className="mt-auto flex items-end justify-between gap-2">
+            <span className="font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[40px]">
+              {peopleQ.isLoading ? (
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              ) : peopleQ.isError ? (
+                "—"
+              ) : (
+                count
+              )}
+            </span>
+            <span className="flex items-center gap-0.5 text-[11px] font-medium text-muted-foreground">
+              people <ChevronRight className="h-3.5 w-3.5" />
+            </span>
+          </div>
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          disabled={peopleQ.isLoading}
+          className="flex w-full items-center gap-3 rounded-xl border border-border/70 bg-card px-4 py-3 text-left shadow-sm transition hover:border-primary/40 hover:bg-primary/5 sm:rounded-2xl"
+        >
+          <span
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+              count > 0
+                ? "bg-destructive/10 text-destructive"
+                : "bg-emerald-500/10 text-emerald-600"
+            }`}
+          >
+            <ShieldAlert className="h-5 w-5" />
           </span>
-          <span className="block text-sm text-foreground">
-            People with more than {COMPLIANCE_DUTY_LIMIT} duties · {monthLabel} · {windowLabel}
+          <span className="min-w-0 flex-1">
+            <span className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Compliance
+            </span>
+            <span className="block text-sm text-foreground">
+              People with more than {COMPLIANCE_DUTY_LIMIT} duties · {monthLabel} · {windowLabel}
+            </span>
           </span>
-        </span>
-        <span className="font-display text-2xl font-bold tabular-nums text-foreground">
-          {peopleQ.isLoading ? (
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-          ) : peopleQ.isError ? (
-            "—"
-          ) : (
-            count
-          )}
-        </span>
-        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-      </button>
+          <span className="font-display text-2xl font-bold tabular-nums text-foreground">
+            {peopleQ.isLoading ? (
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            ) : peopleQ.isError ? (
+              "—"
+            ) : (
+              count
+            )}
+          </span>
+          <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+        </button>
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] max-w-4xl overflow-hidden p-0">
