@@ -136,6 +136,7 @@ import { resolvePayrollDayCount, type PayrollDayBaseLike } from "@/lib/payroll-d
 import { cn } from "@/lib/utils";
 import { AttendanceUploadsButton, saveAttendanceUploads } from "@/components/AttendanceUploadsButton";
 import { useCurrentPermissions } from "@/lib/rbac";
+import { AttendanceCardSection } from "@/components/AttendanceCardSection";
 import { useCurrentUserRole } from "@/lib/use-current-user-role";
 
 const searchSchema = z.object({
@@ -5427,6 +5428,11 @@ toast.info("Listening… say e.g. \"1 hour 30 minutes\"");
           {previousVersion?.reason ? <> Reason: {previousVersion.reason}</> : null}
         </div>
       )}
+
+      {/* Attendance card: the client card this sheet was checked against */}
+      {unitId ? (
+        <AttendanceCardSection unitId={unitId} periodStart={periodStart} periodEnd={periodEnd} />
+      ) : null}
 
       {/* Version history + change log */}
       {(versions.length > 0 || amendmentActive) && (

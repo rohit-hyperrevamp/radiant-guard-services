@@ -63,3 +63,4 @@
 - Document dialogs use the shared document size and FittedDocument for screen-only scaling; preserve original paper geometry for exports and remove decorative section frames without stripping inputs or statutory table rules.
 
 - Dashboard/registers share useRegisterPeriods/register-summary; links carry month/window and reset filters. dashboard-master-counts uses current directory eligibility to avoid inflated totals.
+- Attendance Card: `attendance_card_copies` + private `attendance-cards` bucket (5-minute signed links) holds the client card each sheet was checked against, keyed by unit + exact sheet period; read needs Attendance view and unit visibility, upload Attendance edit — shown on the sheet as "Attendance card › View attendance".
