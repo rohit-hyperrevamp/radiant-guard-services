@@ -982,7 +982,7 @@ function SidePanel({
   children: React.ReactNode;
 }) {
   return (
-    <section className="overflow-hidden rounded-[24px] border border-border/60 bg-card/70 backdrop-blur-2xl shadow-[0_1px_0_0_rgba(255,255,255,0.85)_inset,0_24px_60px_-30px_rgba(15,23,42,0.22)]">
+    <section className="overflow-hidden rounded-2xl border border-border/60 bg-card/70 backdrop-blur-2xl shadow-[0_1px_0_0_rgba(255,255,255,0.85)_inset,0_24px_60px_-30px_rgba(15,23,42,0.22)]">
       <header className="flex items-center gap-3 border-b border-border/50 bg-card px-5 py-3.5">
         <span
           className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl ring-1 ring-inset ${ACCENT_CHIP[accent]}`}
@@ -1054,7 +1054,7 @@ function MetricTile({
       </div>
     </>
   );
-  const cls = `dashboard-summary-tile group relative flex h-[188px] flex-col overflow-hidden rounded-[26px] border border-border/40 ${ACCENT_TILE_BG[accent]} p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg`;
+  const cls = `dashboard-summary-tile group relative flex h-[188px] flex-col overflow-hidden rounded-2xl border border-border/40 ${ACCENT_TILE_BG[accent]} p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg`;
   return to ? (
     <Link to={to} className={cls}>
       {inner}

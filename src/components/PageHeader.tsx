@@ -51,7 +51,7 @@ export function PageHeader({
     <div
       className={cn("relative mb-2 pt-[env(safe-area-inset-top,0px)] sm:mb-5 sm:pt-0", className)}
     >
-      <div className="mobile-glass-surface relative overflow-hidden border-b border-border/50 bg-card/55 px-2 pb-2 pt-1 sm:rounded-xl sm:border sm:bg-card sm:p-5">
+      <div className="mobile-glass-surface relative overflow-hidden border-b border-border/50 bg-card/55 px-2 pb-2 pt-1 sm:rounded-2xl sm:border sm:border-border/70 sm:bg-card sm:p-6">
         <div className="relative flex min-w-0 flex-col gap-2.5 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-4">
           <div className="flex min-w-0 items-center gap-2.5 sm:items-start sm:gap-3">
             {Icon && (
@@ -63,11 +63,11 @@ export function PageHeader({
             )}
             <div className="min-w-0">
               {eyebrow && (
-                <div className="mb-1 inline-flex items-center gap-1.5 rounded-full bg-accent/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-accent">
+                <div className="mb-1 text-[12px] font-medium text-accent">
                   {eyebrow}
                 </div>
               )}
-              <h1 className="font-display text-[20px] font-semibold leading-tight text-foreground sm:truncate sm:text-[24px]">
+              <h1 className="font-display text-[20px] font-semibold leading-tight tracking-tight text-foreground sm:truncate sm:text-[26px]">
                 {title}
               </h1>
               {description && (
@@ -131,7 +131,8 @@ export function PageStat({
     <Wrapper
       {...(onClick ? { type: "button", onClick } : {})}
       className={cn(
-        "dashboard-summary-tile group relative flex h-[124px] w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-border/40 p-3 text-left transition-colors sm:h-[172px] sm:rounded-[26px] sm:p-5",
+        "dashboard-summary-tile group relative flex h-[112px] w-full min-w-0 flex-col overflow-hidden rounded-2xl border p-3 text-left transition-all duration-200 sm:h-[140px] sm:p-5",
+        onClick && "hover:-translate-y-0.5 hover:border-border",
         ACCENT_TILE_BG[resolvedAccent],
         onClick && "cursor-pointer",
         active && "ring-2 ring-accent/40",
@@ -141,7 +142,7 @@ export function PageStat({
         <div className="min-w-0">
           <TileNumber
             variant="label"
-            className="dashboard-tile-title font-display text-[12px] font-medium leading-tight text-foreground sm:text-[15px]"
+            className="dashboard-tile-title text-[12px] font-medium leading-tight text-muted-foreground sm:text-[13.5px]"
           >
             {label}
           </TileNumber>
@@ -163,7 +164,12 @@ export function PageStat({
         )}
       </div>
       <div className="relative mt-auto flex items-end justify-between gap-2">
-        <TileNumber className="min-w-0 whitespace-nowrap font-display text-[26px] font-medium leading-none tabular-nums text-foreground sm:text-[40px]">
+        <TileNumber
+          className={cn(
+            "min-w-0 whitespace-nowrap font-display text-[26px] font-semibold leading-none tabular-nums sm:text-[34px]",
+            tone === "warning" ? "text-amber-600 dark:text-amber-400" : tone === "destructive" ? "text-rose-600 dark:text-rose-400" : "text-foreground",
+          )}
+        >
           {value}
         </TileNumber>
         <span

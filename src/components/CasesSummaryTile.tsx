@@ -37,7 +37,7 @@ export function CasesSummaryTile({ summary }: { summary: { total: number; open: 
     <Link
       to="/admin/cases"
       search={{ view: "upcoming" }}
-      className={`dashboard-summary-tile task-summary-tile group relative flex h-[124px] min-w-0 flex-col rounded-2xl border border-border/40 ${ACCENT_TILE_BG.indigo} p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:h-[172px] sm:rounded-[26px] sm:p-5`}
+      className={`dashboard-summary-tile task-summary-tile group relative flex h-[124px] min-w-0 flex-col rounded-2xl border border-border/40 ${ACCENT_TILE_BG.indigo} p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:h-[164px] sm:rounded-2xl sm:p-5`}
     >
       <div className="flex items-center justify-between gap-2">
         <span className="dashboard-tile-title flex items-center gap-1.5 font-display text-[13px] font-medium text-foreground sm:text-[15px]">

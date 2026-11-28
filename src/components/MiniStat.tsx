@@ -39,7 +39,7 @@ export function MiniStat({
   return (
     <div
       className={cn(
-        "dashboard-summary-tile group relative flex h-[124px] min-w-0 flex-col overflow-hidden rounded-2xl border border-border/40 p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:h-[172px] sm:rounded-[26px] sm:p-5",
+        "dashboard-summary-tile group relative flex h-[124px] min-w-0 flex-col overflow-hidden rounded-2xl border border-border/40 p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:h-[164px] sm:rounded-2xl sm:p-5",
         ACCENT_TILE_BG[resolvedAccent],
       )}
     >

@@ -33,6 +33,7 @@ import { LabeledMultiSelectFilter } from "@/components/MultiSelectFilter";
 import { downloadCsv } from "@/lib/csv-export";
 import { fmtINR } from "@/lib/payroll-calc";
 import { cn } from "@/lib/utils";
+import { compactINR } from "@/lib/compact-money";
 
 // ---------------------------------------------------------------------------
 // Committed vs actual (MTD) money charters — payroll, invoice and P&L.
@@ -107,24 +108,32 @@ function moneyTone(committed: number, actual: number): "ok" | "warning" | "destr
 function Tile({
   label,
   value,
+  exact,
   sub,
   icon: Icon,
   tone,
+  progress,
   onClick,
   pressed,
   actionLabel,
 }: {
   label: string;
   value: string;
+  /** Exact figure shown on hover when `value` is compact (₹14.92 Cr). */
+  exact?: string;
   sub?: string;
   icon: typeof Users;
   tone?: "accent" | "success" | "warning" | "destructive";
+  /** 0–100: renders a completion bar under the figure. */
+  progress?: number;
   /** Makes the whole tile a button (e.g. to sort the list below by this figure). */
   onClick?: () => void;
   pressed?: boolean;
   actionLabel?: string;
 }) {
   const Root = onClick ? "button" : "div";
+  const barTone =
+    tone === "success" ? "bg-emerald-500" : tone === "warning" ? "bg-amber-500" : tone === "destructive" ? "bg-rose-500" : "bg-brand";
   return (
     <Root
       {...(onClick
@@ -138,46 +147,41 @@ function Tile({
           }
         : {})}
       className={cn(
-        "dashboard-summary-tile flex min-w-0 flex-col rounded-2xl border p-3 bg-gradient-to-br",
+        "dashboard-summary-tile flex min-w-0 flex-col rounded-2xl border border-border/70 bg-card p-4 shadow-[0_1px_2px_rgb(15_23_42/0.04)]",
         onClick &&
-          "cursor-pointer text-left transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        pressed && "ring-2 ring-emerald-500/50",
-        tone === "success"
-          ? "border-emerald-500/40 from-emerald-500/15 to-emerald-500/5"
-          : tone === "warning"
-            ? "border-amber-500/40 from-amber-500/15 to-amber-500/5"
-            : tone === "destructive"
-              ? "border-destructive/40 from-destructive/15 to-destructive/5"
-              : tone === "accent"
-                ? "border-primary/30 from-primary/10 to-primary/5"
-                : "border-border from-background/80 to-background/40",
+          "cursor-pointer text-left transition-all hover:-translate-y-0.5 hover:border-border hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        pressed && "ring-2 ring-brand/40",
       )}
     >
-      <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-        <Icon
+      <div className="flex items-center gap-2 text-[12.5px] font-medium text-muted-foreground">
+        <span
           className={cn(
-            "h-3.5 w-3.5",
-            tone === "accent" && "text-primary",
-            tone === "success" && "text-emerald-600",
-            tone === "warning" && "text-amber-500",
-            tone === "destructive" && "text-destructive",
+            "grid h-6 w-6 shrink-0 place-items-center rounded-full",
+            tone === "success" ? "bg-emerald-500/10 text-emerald-600" : tone === "warning" ? "bg-amber-500/12 text-amber-600" : tone === "destructive" ? "bg-rose-500/10 text-rose-600" : "bg-brand/10 text-brand",
           )}
-        />
+        >
+          <Icon className="h-3.5 w-3.5" />
+        </span>
         <TileNumber variant="label" className="dashboard-tile-title">
           {label}
         </TileNumber>
       </div>
-      {sub && <div className="text-[11px] text-muted-foreground">{sub}</div>}
-      <TileNumber
-        className={cn(
-          "mt-auto min-w-0 text-base font-semibold tabular-nums xl:text-lg",
-          tone === "success" && "text-emerald-600",
-          tone === "warning" && "text-amber-600",
-          tone === "destructive" && "text-destructive",
-        )}
-      >
-        {value}
-      </TileNumber>
+      {sub && <div className="mt-1 text-[11.5px] text-muted-foreground">{sub}</div>}
+      <span title={exact} className="mt-auto pt-3">
+        <TileNumber
+          className={cn(
+            "min-w-0 font-display text-[22px] font-semibold tabular-nums leading-none tracking-tight xl:text-[26px]",
+            tone === "warning" ? "text-amber-600" : tone === "destructive" ? "text-rose-600" : "text-foreground",
+          )}
+        >
+          {value}
+        </TileNumber>
+      </span>
+      {progress != null && (
+        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+          <div className={cn("h-full rounded-full transition-[width] duration-700", barTone)} style={{ width: `${Math.max(0, Math.min(100, progress))}%` }} />
+        </div>
+      )}
     </Root>
   );
 }
@@ -206,7 +210,11 @@ type Money = { committed: number; actual: number };
 
 function summaryMoney(value: number, readyCount: number): string {
   const amount = financeSummaryAmount(value, readyCount);
-  return amount === null ? "—" : fmtINR(amount);
+  return amount === null ? "—" : compactINR(amount);
+}
+function summaryExact(value: number, readyCount: number): string | undefined {
+  const amount = financeSummaryAmount(value, readyCount);
+  return amount === null ? undefined : fmtINR(amount);
 }
 
 function CoverageCard({
@@ -275,6 +283,7 @@ function CoverageCard({
         <Tile
           label={labels.committed}
           value={summaryMoney(totals.committed, totals.ready)}
+          exact={summaryExact(totals.committed, totals.ready)}
           sub={
             strengthOf
               ? `${totals.strength.committed} committed strength · full month`
@@ -286,16 +295,16 @@ function CoverageCard({
         <Tile
           label={labels.actual}
           value={summaryMoney(totals.actual, totals.ready)}
+          exact={summaryExact(totals.actual, totals.ready)}
           sub={`${rows.length} clients · ${rows.filter(r => r.totals_pending).length} pending`}
           icon={icons.actual}
-          tone={toneTile}
         />
         <Tile
           label="Remaining to full month"
-          value={totals.ready > 0 ? `${totals.remaining < 0 ? "+" : ""}${fmtINR(Math.abs(Math.round(totals.remaining)))}` : "—"}
+          value={totals.ready > 0 ? `${totals.remaining < 0 ? "+" : ""}${compactINR(Math.abs(Math.round(totals.remaining)))}` : "—"}
+          exact={totals.ready > 0 ? fmtINR(Math.abs(Math.round(totals.remaining))) : undefined}
           sub={totals.ready === 0 ? "Awaiting updated totals" : totals.remaining >= 0 ? "Contract value not yet earned" : "Earned above commitment"}
           icon={TrendingDown}
-          tone={toneTile}
         />
         <Tile
           label="MTD completion"
@@ -303,6 +312,7 @@ function CoverageCard({
           sub="Actual ÷ full-month committed"
           icon={Gauge}
           tone={toneTile}
+          progress={totals.ready > 0 ? totals.coverage : undefined}
         />
       </div>
 
@@ -718,6 +728,7 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
         <Tile
           label="Invoice"
           value={summaryMoney(totals.invoice, totals.ready)}
+          exact={summaryExact(totals.invoice, totals.ready)}
           sub={`${totals.ready} site${totals.ready === 1 ? "" : "s"} ready`}
           icon={Receipt}
           tone="accent"
@@ -725,6 +736,7 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
         <Tile
           label="Earned gross"
           value={summaryMoney(totals.earnedGross, totals.ready)}
+          exact={summaryExact(totals.earnedGross, totals.ready)}
           sub="Gross earned from attendance"
           icon={Wallet}
           tone="accent"
@@ -732,6 +744,7 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
         <Tile
           label="Employer contribution"
           value={summaryMoney(totals.employerContribution, totals.ready)}
+          exact={summaryExact(totals.employerContribution, totals.ready)}
           sub="Employer-side cost"
           icon={Banknote}
           tone="accent"
@@ -739,6 +752,7 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
         <Tile
           label="Profitability"
           value={summaryMoney(totals.profit, totals.ready)}
+          exact={summaryExact(totals.profit, totals.ready)}
           sub={totals.ready > 0 ? `${totals.margin.toFixed(1)}% margin` : "Awaiting updated totals"}
           icon={PiggyBank}
           tone={totals.profit < 0 ? "destructive" : "success"}

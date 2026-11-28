@@ -228,7 +228,7 @@ function Tile({
   return (
     <div
       className={cn(
-        "dashboard-summary-tile flex h-[124px] min-w-0 flex-col overflow-hidden rounded-2xl border p-3 sm:h-[172px] sm:p-5",
+        "dashboard-summary-tile flex h-[124px] min-w-0 flex-col overflow-hidden rounded-2xl border p-3 sm:h-[164px] sm:p-5",
         tone === "success"
           ? "border-emerald-500/40 bg-emerald-500/10"
           : tone === "warning"

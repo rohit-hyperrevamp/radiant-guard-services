@@ -137,7 +137,7 @@ export function EmployeeInsightsSection({ showRecruitment = false }: { showRecru
   const [view, setView] = React.useState("employees");
 
   return (
-    <section className="w-full overflow-hidden rounded-[24px] border border-border/60 bg-card/70 p-4 backdrop-blur-2xl shadow-[0_1px_0_0_rgba(255,255,255,0.85)_inset,0_24px_60px_-30px_rgba(15,23,42,0.22)] sm:p-5">
+    <section className="w-full overflow-hidden rounded-2xl border border-border/60 bg-card/70 p-4 backdrop-blur-2xl shadow-[0_1px_0_0_rgba(255,255,255,0.85)_inset,0_24px_60px_-30px_rgba(15,23,42,0.22)] sm:p-5">
       <header className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Workforce</div>

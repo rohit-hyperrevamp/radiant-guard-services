@@ -90,19 +90,19 @@ function RecruitmentDashboard() {
           {label:"In pipeline",sub:"All active stages",value:s.pipeline,stage:"pipeline",accent:"violet",icon:Users},
           {label:"Joined this month",sub:"Onboarded",value:s.closures,stage:"onboarded",accent:"emerald",icon:UserCheck},
           {label:"Lost this month",sub:"Rejected or withdrawn",value:s.lost,stage:"lost",accent:"rose",icon:UserX},
-        ] as const).map(item=><button key={item.stage} type="button" onClick={()=>go(item.stage)} className="min-w-0 rounded-[26px] text-left transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        ] as const).map(item=><button key={item.stage} type="button" onClick={()=>go(item.stage)} className="min-w-0 rounded-2xl text-left transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <CharterTile label={item.label} sub={item.sub} countTo={cq.isLoading||cq.error?undefined:item.value} value="—" icon={item.icon} accent={item.accent} />
         </button>)}
         <CharterTile label="Closure rate" sub="Joined ÷ (joined + lost)" value={cq.isLoading||cq.error?"—":`${s.pct}%`} icon={Percent} accent="amber" />
       </section>
-      <section className="rounded-[26px] border border-border/40 bg-card p-4 sm:p-5">
+      <section className="rounded-2xl border border-border/40 bg-card p-4 sm:p-5">
         <div className="mb-3 flex items-center justify-between gap-2"><h2 className="font-display text-[15px] font-medium">Hiring stages</h2><span className="text-xs text-muted-foreground">Click a stage to open its candidates</span></div>
         {cq.error?<p className="text-sm text-destructive">Candidate summary unavailable.</p>:<div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
           {STAGES.map((st,idx)=>{const n=s.byStage.get(st.key)??0;const acc=STAGE_ACCENTS[idx%STAGE_ACCENTS.length];return <button key={st.key} type="button" onClick={()=>go(st.key)} className={`flex min-w-0 flex-col items-start gap-1 rounded-2xl border border-border/40 p-3 text-left transition-transform hover:-translate-y-0.5 ${n>0?ACCENT_TILE_BG[acc]:"bg-muted/40"}`}><span className="w-full truncate text-xs text-muted-foreground">{st.label}</span><span className={`font-display text-2xl font-medium tabular-nums ${n>0?"text-foreground":"text-muted-foreground"}`}>{cq.isLoading?"—":n}</span></button>;})}
         </div>}
       </section>
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="min-w-0 rounded-[26px] border border-border/40 bg-card p-4 sm:p-5">
+        <section className="min-w-0 rounded-2xl border border-border/40 bg-card p-4 sm:p-5">
           <div className="mb-3 flex items-center justify-between gap-2"><h2 className="text-sm font-semibold">Interviews · next 7 days</h2><Button asChild variant="link" size="sm" className="h-auto p-0"><Link to="/admin/hr/recruitment/interviews">View all<ArrowRight className="ml-1 h-3 w-3"/></Link></Button></div>
           {iq.isLoading?<p className="text-sm text-muted-foreground">Loading interviews…</p>:iq.error?<p className="text-sm text-destructive">Interviews unavailable.</p>:s.upcoming.length === 0 ? <p className="rounded-lg bg-muted/50 py-6 text-center text-sm text-muted-foreground">No interviews scheduled.</p> : (
             <ul className="divide-y divide-border">
@@ -118,7 +118,7 @@ function RecruitmentDashboard() {
           )}
           {s.overdue.length > 0 && <p className="mt-3 rounded-lg bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">Feedback overdue for {s.overdue.length} interview{s.overdue.length>1?"s":""}</p>}
         </section>
-        <section className="min-w-0 rounded-[26px] border border-border/40 bg-card p-4 sm:p-5">
+        <section className="min-w-0 rounded-2xl border border-border/40 bg-card p-4 sm:p-5">
           <DocumentFollowupPanel compact />
         </section>
       </div>
@@ -135,7 +135,7 @@ function Breakdown({ title, data }: { title: string; data: Map<string, number> }
   const rows = Array.from(data.entries()).sort((a, b) => b[1] - a[1]);
   const max = rows[0]?.[1] ?? 1;
   return (
-    <section className="min-w-0 rounded-[26px] border border-border/40 bg-card p-4 sm:p-5">
+    <section className="min-w-0 rounded-2xl border border-border/40 bg-card p-4 sm:p-5">
       <h2 className="mb-3 text-sm font-semibold">{title}</h2>
       {rows.length === 0 ? <p className="text-sm text-muted-foreground">No active candidates.</p> : (
         <ul className="space-y-2 text-sm">

@@ -299,7 +299,7 @@ export function NotificationBell({ triggerClassName }: { triggerClassName?: stri
               onClick={() => setMobileOpen(false)}
             />
             <div
-               className="absolute inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] flex max-h-[78dvh] flex-col overflow-hidden rounded-[24px] border border-border/60 bg-card/95 shadow-2xl backdrop-blur-xl animate-in slide-in-from-bottom duration-300 ease-out"
+               className="absolute inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] flex max-h-[78dvh] flex-col overflow-hidden rounded-2xl border border-border/60 bg-card/95 shadow-2xl backdrop-blur-xl animate-in slide-in-from-bottom duration-300 ease-out"
               style={{
                  paddingBottom: "4px",
               }}

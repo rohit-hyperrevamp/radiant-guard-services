@@ -1486,7 +1486,7 @@ function DashboardPage() {
             ? Array.from({ length: 8 }).map((_, i) => (
                 <div
                   key={i}
-                  className="h-[124px] animate-pulse rounded-2xl border border-border/60 bg-card sm:h-[172px] sm:rounded-[26px]"
+                  className="h-[124px] animate-pulse rounded-2xl border border-border/60 bg-card sm:h-[164px] sm:rounded-2xl"
                 />
               ))
             : tiles.map((t, i) => (
@@ -1717,14 +1717,14 @@ const ACCENT_BAR: Record<Accent, string> = {
 };
 
 const ACCENT_TILE_BG: Record<Accent, string> = {
-  rose: "bg-rose-100/80 dark:bg-rose-500/15",
-  cyan: "bg-cyan-100/80 dark:bg-cyan-500/15",
-  lime: "bg-lime-100/80 dark:bg-lime-500/15",
-  violet: "bg-violet-100/80 dark:bg-violet-500/15",
-  amber: "bg-amber-100/80 dark:bg-amber-500/15",
-  emerald: "bg-emerald-100/80 dark:bg-emerald-500/15",
-  sky: "bg-sky-100/80 dark:bg-sky-500/15",
-  indigo: "bg-indigo-100/80 dark:bg-indigo-500/15",
+  rose: "bg-card",
+  cyan: "bg-card",
+  lime: "bg-card",
+  violet: "bg-card",
+  amber: "bg-card",
+  emerald: "bg-card",
+  sky: "bg-card",
+  indigo: "bg-card",
 };
 
 function Shell({
@@ -1744,7 +1744,7 @@ function Shell({
     <Link
       to={to}
       search={scopedSearch as never}
-      className={`dashboard-summary-tile group relative flex h-[124px] min-w-0 flex-col overflow-hidden rounded-2xl border border-border/40 ${ACCENT_TILE_BG[accent]} p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:h-[172px] sm:rounded-[26px] sm:p-5`}
+      className={`dashboard-summary-tile group relative flex h-[124px] min-w-0 flex-col overflow-hidden rounded-2xl border border-border/70 ${ACCENT_TILE_BG[accent]} p-3 shadow-[0_1px_2px_rgb(15_23_42/0.04),0_10px_28px_-20px_rgb(15_23_42/0.2)] transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:shadow-[0_2px_4px_rgb(15_23_42/0.05),0_18px_40px_-22px_rgb(15_23_42/0.28)] sm:h-[164px] sm:rounded-2xl sm:p-5`}
     >
       {children}
     </Link>
@@ -2094,7 +2094,7 @@ function TransportFleetAssetsTiles() {
         {Array.from({ length: 6 }).map((_, i) => (
           <div
             key={i}
-            className="h-[124px] animate-pulse rounded-2xl border border-border/60 bg-card sm:h-[172px] sm:rounded-[26px]"
+            className="h-[124px] animate-pulse rounded-2xl border border-border/60 bg-card sm:h-[164px] sm:rounded-2xl"
           />
         ))}
       </div>

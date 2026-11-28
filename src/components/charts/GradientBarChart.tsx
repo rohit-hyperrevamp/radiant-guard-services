@@ -1,4 +1,5 @@
 import * as React from "react";
+import { chartAxis, chartGrid, chartTooltipStyle, yAxisCompact } from "./chart-theme";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell,
 } from "recharts";
@@ -17,8 +18,8 @@ type Props = {
 export function GradientBarChart({
   data,
   height = 220,
-  gradientFrom = "oklch(0.55 0.22 255)",
-  gradientTo = "oklch(0.55 0.22 255)",
+  gradientFrom = "oklch(0.585 0.197 259)",
+  gradientTo = "oklch(0.585 0.197 259 / 0.7)",
   formatValue,
   id = "grad-bar",
 }: Props) {
@@ -33,34 +34,11 @@ export function GradientBarChart({
               <stop offset="100%" stopColor={gradientTo} stopOpacity={1} />
             </linearGradient>
           </defs>
-          <CartesianGrid stroke="oklch(0.92 0.01 250)" vertical={false} strokeDasharray="3 6" />
-          <XAxis
-            dataKey="label"
-            tickLine={false}
-            axisLine={false}
-            tick={{ fill: "oklch(0.55 0.02 250)", fontSize: 11, fontWeight: 600 }}
-          />
-          <YAxis
-            tickLine={false}
-            axisLine={false}
-            width={48}
-            tick={{ fill: "oklch(0.60 0.02 250)", fontSize: 11 }}
-            tickFormatter={(v) => (typeof v === "number" ? fmt(v) : String(v))}
-          />
-          <Tooltip
-            cursor={{ fill: "oklch(0.96 0.01 250 / 0.5)" }}
-            contentStyle={{
-              borderRadius: 14,
-              border: "1px solid oklch(0.92 0.01 250)",
-              background: "oklch(1 0 0 / 0.92)",
-              backdropFilter: "blur(12px)",
-              boxShadow: "0 20px 50px -30px rgba(10,20,40,0.25)",
-              fontSize: 12,
-            }}
-            formatter={(v: number) => [fmt(v), ""]}
-            labelStyle={{ fontWeight: 600, color: "oklch(0.30 0.02 250)" }}
-          />
-          <Bar dataKey="value" radius={[8, 8, 4, 4]} fill={`url(#${id})`}>
+          <CartesianGrid {...chartGrid} />
+          <XAxis dataKey="label" {...chartAxis} />
+          <YAxis {...yAxisCompact} tickFormatter={formatValue ? (v) => (typeof v === "number" ? fmt(v) : String(v)) : yAxisCompact.tickFormatter} />
+          <Tooltip {...chartTooltipStyle} formatter={(v: number) => [fmt(v), ""]} />
+          <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={44} fill={`url(#${id})`}>
             {data.map((_, i) => <Cell key={i} />)}
           </Bar>
         </BarChart>

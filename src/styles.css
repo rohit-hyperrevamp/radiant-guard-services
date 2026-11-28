@@ -66,9 +66,31 @@
   --color-rate-present-foreground: var(--rate-present-foreground);
   --color-rate-revised: var(--rate-revised);
   --color-rate-revised-foreground: var(--rate-revised-foreground);
-  --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif;
-  --font-heading: 'Sora', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Sora', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Geist', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-heading: 'Geist', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Geist', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Modern, restrained tints: the 50/100 shades used for washes, badges and
+     tiles stay recognisable by hue but sit close to white, so colour signals
+     meaning instead of painting whole screens. */
+  --color-amber-50: oklch(0.987 0.012 85);   --color-amber-100: oklch(0.968 0.03 85);
+  --color-yellow-50: oklch(0.988 0.012 100); --color-yellow-100: oklch(0.97 0.03 100);
+  --color-orange-50: oklch(0.985 0.011 55);  --color-orange-100: oklch(0.965 0.028 55);
+  --color-lime-50: oklch(0.988 0.012 125);   --color-lime-100: oklch(0.97 0.03 125);
+  --color-emerald-50: oklch(0.984 0.012 165); --color-emerald-100: oklch(0.962 0.03 165);
+  --color-green-50: oklch(0.985 0.012 150);  --color-green-100: oklch(0.963 0.03 150);
+  --color-teal-50: oklch(0.984 0.011 185);   --color-teal-100: oklch(0.962 0.028 185);
+  --color-cyan-50: oklch(0.984 0.011 210);   --color-cyan-100: oklch(0.962 0.026 210);
+  --color-sky-50: oklch(0.983 0.011 235);    --color-sky-100: oklch(0.96 0.026 235);
+  --color-blue-50: oklch(0.982 0.012 255);   --color-blue-100: oklch(0.958 0.028 255);
+  --color-indigo-50: oklch(0.981 0.012 275); --color-indigo-100: oklch(0.957 0.026 275);
+  --color-violet-50: oklch(0.981 0.012 295); --color-violet-100: oklch(0.958 0.026 295);
+  --color-purple-50: oklch(0.982 0.012 305); --color-purple-100: oklch(0.959 0.026 305);
+  --color-fuchsia-50: oklch(0.983 0.012 325); --color-fuchsia-100: oklch(0.96 0.026 325);
+  --color-pink-50: oklch(0.983 0.012 350);   --color-pink-100: oklch(0.96 0.026 350);
+  --color-rose-50: oklch(0.982 0.012 10);    --color-rose-100: oklch(0.958 0.026 10);
+  --color-red-50: oklch(0.982 0.012 25);     --color-red-100: oklch(0.958 0.026 25);
 }
 
 :root {
@@ -76,19 +98,19 @@
   --mobile-edge: 0.5rem;
   --mobile-dock-clearance: calc(4.75rem + env(safe-area-inset-bottom, 0px));
   /* surfaces — soft neutral canvas, pure white cards (reference design language) */
-  --background: oklch(0.958 0.004 170);
-  --foreground: oklch(0.19 0.015 168);
+  --background: oklch(0.975 0.003 255);
+  --foreground: oklch(0.2 0.012 260);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.19 0.015 168);
+  --card-foreground: oklch(0.2 0.012 260);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.19 0.015 168);
+  --popover-foreground: oklch(0.2 0.012 260);
   /* deep ink primary — the dark pill used for active nav / primary buttons */
-  --primary: oklch(0.22 0.022 168);
+  --primary: oklch(0.21 0.015 260);
   --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.945 0.006 170);
-  --secondary-foreground: oklch(0.22 0.02 168);
-  --muted: oklch(0.948 0.005 170);
-  --muted-foreground: oklch(0.52 0.012 170);
+  --secondary: oklch(0.955 0.004 255);
+  --secondary-foreground: oklch(0.22 0.014 260);
+  --muted: oklch(0.958 0.004 255);
+  --muted-foreground: oklch(0.53 0.014 258);
   /* vivid blue accent — echoes the Radiant brand blue inside the app */
   --accent: oklch(0.585 0.197 259);
   --accent-foreground: oklch(0.99 0 0);
@@ -96,22 +118,22 @@
   --destructive: oklch(0.62 0.16 20);
   --priority-critical: oklch(0.5 0.2 25); --priority-critical-foreground: oklch(0.99 0 0); --priority-high: oklch(0.58 0.2 25); --priority-medium: oklch(0.62 0.14 65); --priority-low: oklch(0.55 0.14 150);
   --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.905 0.005 170);
-  --input: oklch(0.905 0.005 170);
+  --border: oklch(0.918 0.004 255);
+  --input: oklch(0.905 0.005 255);
 
   --ring: oklch(0.585 0.197 259);
   --chart-1: oklch(0.585 0.197 259);
-  --chart-2: oklch(0.72 0.15 160);
-  --chart-3: oklch(0.75 0.15 85);
-  --chart-4: oklch(0.62 0.19 300);
-  --chart-5: oklch(0.65 0.2 25);
+  --chart-2: oklch(0.7 0.13 185);
+  --chart-3: oklch(0.78 0.14 75);
+  --chart-4: oklch(0.6 0.17 295);
+  --chart-5: oklch(0.66 0.18 18);
   --sidebar: oklch(1 0 0);
   --sidebar-foreground: oklch(0.22 0.02 168);
   --sidebar-primary: oklch(0.20 0.022 168);
   --sidebar-primary-foreground: oklch(0.99 0 0);
   --sidebar-accent: oklch(0.955 0.005 170);
   --sidebar-accent-foreground: oklch(0.22 0.02 168);
-  --sidebar-border: oklch(0.925 0.005 170);
+  --sidebar-border: oklch(0.925 0.004 255);
   --sidebar-ring: oklch(0.60 0.075 192);
   --dock: oklch(0.12 0.006 168);
   --dock-foreground: oklch(0.98 0 0);
@@ -263,12 +285,21 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "cv11", "ss01";
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading);
-    letter-spacing: 0;
-    font-weight: 500;
+    letter-spacing: -0.015em;
+    font-weight: 600;
+  }
+
+  /* Display numerals: tight, tabular, modern. */
+  .font-display {
+    letter-spacing: -0.025em;
+    font-variant-numeric: tabular-nums;
   }
 
   strong, b {
@@ -1029,8 +1060,8 @@
   /* Every base card: pure white, generously rounded, whisper-soft shadow. */
   .bg-card {
     background-image: none;
-    border-radius: 24px;
-    box-shadow: 0 1px 2px rgb(var(--surface-shadow) / 0.035), 0 12px 30px -24px rgb(var(--surface-shadow) / 0.18);
+    border-radius: 16px;
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 10px 28px -22px rgb(15 23 42 / 0.2);
   }
   .dark .bg-card {
     background-image: none;
@@ -1042,18 +1073,19 @@
 
   /* Flat pastel tile variants — solid soft fills, no gradient, matching the
      lime / mint / blush cards of the reference dashboard. */
-  .tile-tint-blue    { background: rgb(var(--tint-blue));    border-color: color-mix(in oklab, rgb(var(--tint-blue)) 70%, black 6%); }
-  .tile-tint-indigo  { background: rgb(var(--tint-indigo));  border-color: color-mix(in oklab, rgb(var(--tint-indigo)) 70%, black 6%); }
-  .tile-tint-emerald { background: rgb(var(--tint-emerald)); border-color: color-mix(in oklab, rgb(var(--tint-emerald)) 70%, black 6%); }
-  .tile-tint-amber   { background: rgb(var(--tint-amber));   border-color: color-mix(in oklab, rgb(var(--tint-amber)) 70%, black 6%); }
-  .tile-tint-rose    { background: rgb(var(--tint-rose));    border-color: color-mix(in oklab, rgb(var(--tint-rose)) 70%, black 6%); }
-  .tile-tint-violet  { background: rgb(var(--tint-violet));  border-color: color-mix(in oklab, rgb(var(--tint-violet)) 70%, black 6%); }
-  .tile-tint-sky     { background: rgb(var(--tint-sky));     border-color: color-mix(in oklab, rgb(var(--tint-sky)) 70%, black 6%); }
-  .tile-tint-slate   { background: rgb(var(--tint-slate));   border-color: color-mix(in oklab, rgb(var(--tint-slate)) 70%, black 6%); }
-  :where(.tile-tint-blue, .tile-tint-indigo, .tile-tint-emerald, .tile-tint-amber,
-         .tile-tint-rose, .tile-tint-violet, .tile-tint-sky, .tile-tint-slate) .tile-icon {
-    background: rgb(255 255 255 / 0.7);
+  .tile-tint-blue, .tile-tint-indigo, .tile-tint-emerald, .tile-tint-amber,
+  .tile-tint-rose, .tile-tint-violet, .tile-tint-sky, .tile-tint-slate {
+    background: var(--card);
+    border-color: color-mix(in oklab, var(--border) 85%, transparent);
   }
+  .tile-tint-blue .tile-icon    { background: color-mix(in oklab, var(--color-brand) 10%, transparent); color: var(--color-brand); }
+  .tile-tint-emerald .tile-icon { background: color-mix(in oklab, oklch(0.6 0.13 165) 12%, transparent); color: oklch(0.5 0.12 165); }
+  .tile-tint-amber .tile-icon   { background: color-mix(in oklab, oklch(0.75 0.15 75) 16%, transparent); color: oklch(0.55 0.13 70); }
+  .tile-tint-rose .tile-icon    { background: color-mix(in oklab, oklch(0.62 0.18 18) 12%, transparent); color: oklch(0.55 0.17 18); }
+  .tile-tint-violet .tile-icon  { background: color-mix(in oklab, oklch(0.6 0.17 295) 12%, transparent); color: oklch(0.52 0.16 295); }
+  .tile-tint-indigo .tile-icon  { background: color-mix(in oklab, oklch(0.55 0.17 275) 12%, transparent); color: oklch(0.5 0.16 275); }
+  .tile-tint-sky .tile-icon     { background: color-mix(in oklab, oklch(0.65 0.12 235) 12%, transparent); color: oklch(0.5 0.12 240); }
+  .tile-tint-slate .tile-icon   { background: var(--muted); color: var(--muted-foreground); }
   .dark .tile-tint-blue,
   .dark .tile-tint-indigo,
   .dark .tile-tint-emerald,
@@ -1078,13 +1110,13 @@
     table-layout: auto;
   }
   .ios-table thead th {
-    background: var(--card);
-    font-size: 10.5px;
+    background: color-mix(in oklab, var(--muted) 55%, var(--card));
+    font-size: 12px;
     font-weight: 500;
-    letter-spacing: 0.11em;
-    text-transform: uppercase;
-    color: color-mix(in oklab, var(--muted-foreground) 88%, var(--foreground));
-    padding: 14px 14px;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--muted-foreground);
+    padding: 11px 14px;
     border-bottom: 1px solid color-mix(in oklab, var(--border) 55%, transparent);
     white-space: normal;
     text-align: left !important;
@@ -1098,8 +1130,8 @@
   .ios-table tbody td {
     min-width: 96px;
     max-width: min(360px, 44vw);
-    padding: 14px 14px;
-    font-size: 13.25px;
+    padding: 12px 14px;
+    font-size: 13.5px;
     line-height: 1.45;
     color: var(--foreground);
     border-bottom: 1px solid color-mix(in oklab, var(--border) 28%, transparent);
@@ -1130,9 +1162,9 @@
     overflow: visible !important;
     text-overflow: clip !important;
   }
-  /* Subtle zebra for readability — light-mode only */
+  /* Clean rows: hairline separators and hover instead of zebra stripes. */
   .ios-table tbody tr:nth-child(even) > td {
-    background: color-mix(in oklab, var(--foreground) 1.6%, transparent);
+    background: transparent;
   }
   .dark .ios-table tbody tr:nth-child(even) > td { background: transparent; }
 

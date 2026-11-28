@@ -2,13 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
   Cell,
-  Legend,
-  Line,
-  LineChart,
+  Label as ChartLabel,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -24,6 +24,8 @@ import {
   Trash2,
 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
+import { CHART_PALETTE, ChartGradient, ChartLegendChips, chartAxis, chartGrid, chartTooltipStyle, fmtFull, yAxisCompact } from "@/components/charts/chart-theme";
+import { compactNumberIN } from "@/lib/compact-money";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -183,18 +185,7 @@ type DateBucket = "day" | "week" | "month" | "quarter" | "year";
 
 type ChartKind = "bar" | "stackedBar" | "line" | "pie" | "table";
 
-const PALETTE = [
-  "hsl(220 70% 55%)",
-  "hsl(35 92% 55%)",
-  "hsl(150 65% 45%)",
-  "hsl(265 70% 60%)",
-  "hsl(200 80% 55%)",
-  "hsl(0 75% 60%)",
-  "hsl(45 85% 50%)",
-  "hsl(180 60% 45%)",
-  "hsl(310 65% 60%)",
-  "hsl(95 55% 45%)",
-];
+const PALETTE = CHART_PALETTE;
 
 /* ------------------------------ Page component ---------------------------- */
 
@@ -563,6 +554,7 @@ function InsightLabPage() {
                 rows={aggregated.rows}
                 seriesKeys={aggregated.seriesKeys}
                 xLabel={labelOf(dataset, xField)}
+                measureLabel={agg === "count" ? "Count" : `${agg[0].toUpperCase()}${agg.slice(1)} of ${labelOf(dataset, yField)}`}
               />
             )}
           </div>
@@ -637,12 +629,16 @@ function ChartView({
   rows,
   seriesKeys,
   xLabel,
+  measureLabel = "Value",
 }: {
   kind: ChartKind;
   rows: Record<string, string | number>[];
   seriesKeys: string[];
   xLabel: string;
+  measureLabel?: string;
 }) {
+  const nameOf = (s: string) => (s === "value" ? measureLabel : s);
+  const legend = seriesKeys.map((s, i) => ({ name: nameOf(s), color: PALETTE[i % PALETTE.length] }));
   const pg = usePagination(rows);
   if (kind === "table") {
     return (
@@ -676,59 +672,87 @@ function ChartView({
 
   if (kind === "pie") {
     const totals = seriesKeys.map((s, i) => ({
-      name: s,
+      name: nameOf(s),
       value: rows.reduce((acc, r) => acc + Number(r[s] ?? 0), 0),
       color: PALETTE[i % PALETTE.length],
     }));
+    const grand = totals.reduce((a, t) => a + t.value, 0);
     return (
-      <ResponsiveContainer width="100%" height={360}>
-        <PieChart>
-          <Pie data={totals} dataKey="value" nameKey="name" outerRadius={120} label>
-            {totals.map((t, i) => <Cell key={i} fill={t.color} />)}
-          </Pie>
-          <Tooltip />
-          <Legend />
-        </PieChart>
-      </ResponsiveContainer>
+      <div>
+        <ResponsiveContainer width="100%" height={340}>
+          <PieChart>
+            <Pie data={totals} dataKey="value" nameKey="name" innerRadius="62%" outerRadius="88%" paddingAngle={2} cornerRadius={6} stroke="none">
+              {totals.map((t, i) => <Cell key={i} fill={t.color} />)}
+              <ChartLabel
+                position="center"
+                content={({ viewBox }) => {
+                  const vb = viewBox as { cx?: number; cy?: number };
+                  if (vb?.cx == null || vb?.cy == null) return null;
+                  return (
+                    <text x={vb.cx} y={vb.cy} textAnchor="middle" dominantBaseline="middle">
+                      <tspan x={vb.cx} dy="-0.4em" style={{ fontSize: 26, fontWeight: 600, fill: "var(--foreground)" }}>{compactNumberIN(grand)}</tspan>
+                      <tspan x={vb.cx} dy="1.6em" style={{ fontSize: 12, fill: "var(--muted-foreground)" }}>{measureLabel}</tspan>
+                    </text>
+                  );
+                }}
+              />
+            </Pie>
+            <Tooltip {...chartTooltipStyle} formatter={(v) => [fmtFull(v), ""]} />
+          </PieChart>
+        </ResponsiveContainer>
+        <ChartLegendChips items={totals.map((t) => ({ name: t.name, color: t.color }))} />
+      </div>
     );
   }
 
   if (kind === "line") {
     return (
-      <ResponsiveContainer width="100%" height={360}>
-        <LineChart data={rows}>
-          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-          <XAxis dataKey="x" tick={{ fontSize: 11 }} />
-          <YAxis tick={{ fontSize: 11 }} />
-          <Tooltip />
-          <Legend />
-          {seriesKeys.map((s, i) => (
-            <Line key={s} type="monotone" dataKey={s} stroke={PALETTE[i % PALETTE.length]} strokeWidth={2} dot={false} />
-          ))}
-        </LineChart>
-      </ResponsiveContainer>
+      <div>
+        <ResponsiveContainer width="100%" height={340}>
+          <AreaChart data={rows} margin={{ top: 12, right: 12, left: 0, bottom: 0 }}>
+            <defs>
+              {seriesKeys.map((s, i) => <ChartGradient key={s} id={`il-area-${i}`} color={PALETTE[i % PALETTE.length]} from={0.22} />)}
+            </defs>
+            <CartesianGrid {...chartGrid} />
+            <XAxis dataKey="x" {...chartAxis} minTickGap={16} />
+            <YAxis {...yAxisCompact} />
+            <Tooltip {...chartTooltipStyle} formatter={(v, n) => [fmtFull(v), nameOf(String(n))]} />
+            {seriesKeys.map((s, i) => (
+              <Area key={s} type="monotone" dataKey={s} name={nameOf(s)} stroke={PALETTE[i % PALETTE.length]} strokeWidth={2.25} fill={`url(#il-area-${i})`} dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
+            ))}
+          </AreaChart>
+        </ResponsiveContainer>
+        <ChartLegendChips items={legend} />
+      </div>
     );
   }
 
   const stacked = kind === "stackedBar";
   return (
-    <ResponsiveContainer width="100%" height={360}>
-      <BarChart data={rows}>
-        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-        <XAxis dataKey="x" tick={{ fontSize: 11 }} />
-        <YAxis tick={{ fontSize: 11 }} />
-        <Tooltip />
-        <Legend />
-        {seriesKeys.map((s, i) => (
-          <Bar
-            key={s}
-            dataKey={s}
-            stackId={stacked ? "a" : undefined}
-            fill={PALETTE[i % PALETTE.length]}
-            radius={stacked ? 0 : [4, 4, 0, 0]}
-          />
-        ))}
-      </BarChart>
-    </ResponsiveContainer>
+    <div>
+      <ResponsiveContainer width="100%" height={340}>
+        <BarChart data={rows} margin={{ top: 12, right: 12, left: 0, bottom: 0 }} barCategoryGap="28%">
+          <defs>
+            {seriesKeys.map((s, i) => <ChartGradient key={s} id={`il-bar-${i}`} color={PALETTE[i % PALETTE.length]} from={1} to={0.72} />)}
+          </defs>
+          <CartesianGrid {...chartGrid} />
+          <XAxis dataKey="x" {...chartAxis} minTickGap={8} />
+          <YAxis {...yAxisCompact} />
+          <Tooltip {...chartTooltipStyle} formatter={(v, n) => [fmtFull(v), nameOf(String(n))]} />
+          {seriesKeys.map((s, i) => (
+            <Bar
+              key={s}
+              dataKey={s}
+              name={nameOf(s)}
+              stackId={stacked ? "a" : undefined}
+              fill={`url(#il-bar-${i})`}
+              maxBarSize={46}
+              radius={stacked ? (i === seriesKeys.length - 1 ? [6, 6, 0, 0] : 0) : [6, 6, 0, 0]}
+            />
+          ))}
+        </BarChart>
+      </ResponsiveContainer>
+      <ChartLegendChips items={legend} />
+    </div>
   );
 }
