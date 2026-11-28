@@ -57,7 +57,7 @@ export function CharterTile({
     <div
       data-panel="true"
       className={cn(
-        "dashboard-summary-tile group relative flex h-[124px] min-w-0 snap-start flex-col overflow-hidden rounded-2xl border border-border/40 p-3 transition-colors sm:h-[164px] sm:w-auto sm:max-w-none sm:rounded-2xl sm:p-5",
+        "dashboard-summary-tile group relative flex h-[124px] min-w-0 snap-start flex-col overflow-hidden rounded-2xl border border-border/40 p-3 transition-colors sm:h-[172px] sm:w-auto sm:max-w-none sm:rounded-[26px] sm:p-5",
         ACCENT_TILE_BG[accent],
       )}
     >

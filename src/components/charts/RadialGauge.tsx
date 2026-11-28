@@ -20,8 +20,8 @@ export function RadialGauge({
   sublabel,
   size = 220,
   stroke = 18,
-  from = "oklch(0.7 0.15 245)",
-  to = "oklch(0.585 0.197 259)",
+  from = "oklch(0.78 0.18 200)",
+  to = "oklch(0.62 0.22 295)",
 }: Props) {
   const clamped = Math.max(0, Math.min(100, value));
   const [animated, setAnimated] = useState(0);

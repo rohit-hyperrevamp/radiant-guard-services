@@ -107,7 +107,7 @@ export function TileSkeleton() {
   return (
     <div
       aria-hidden
-      className="h-full min-h-[124px] animate-pulse rounded-2xl border border-border/60 bg-card sm:min-h-[172px] sm:rounded-2xl"
+      className="h-full min-h-[124px] animate-pulse rounded-2xl border border-border/60 bg-card sm:min-h-[172px] sm:rounded-[26px]"
     />
   );
 }

@@ -228,7 +228,7 @@ function VehicleInventoryPage() {
             aria-label={`Show ${card.label.toLowerCase()} vehicles`}
             aria-pressed={activeCard === card.key}
             onClick={() => selectCard(card.key)}
-            className={`block h-auto w-full min-w-0 whitespace-normal rounded-2xl p-0 text-left hover:bg-transparent sm:rounded-2xl ${activeCard === card.key ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}`}
+            className={`block h-auto w-full min-w-0 whitespace-normal rounded-2xl p-0 text-left hover:bg-transparent sm:rounded-[26px] ${activeCard === card.key ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}`}
           >
             <MiniStat label={card.label} value={card.value} tone={card.key === "enabled" ? "accent" : undefined} />
           </Button>

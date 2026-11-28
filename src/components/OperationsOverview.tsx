@@ -275,7 +275,7 @@ export function VisitInsightTile({ kind, items }: { kind: "most" | "least"; item
     <Link
       to="/admin/field-sense"
       search={{ range: "this_month", highlight: kind }}
-      className={`group relative flex h-[124px] min-w-0 flex-col overflow-hidden rounded-2xl border border-border/40 p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:h-[164px] sm:rounded-2xl sm:p-5 ${most ? "bg-emerald-100/80 dark:bg-emerald-500/15" : "bg-amber-100/80 dark:bg-amber-500/15"}`}
+      className={`group relative flex h-[124px] min-w-0 flex-col overflow-hidden rounded-2xl border border-border/40 p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:h-[172px] sm:rounded-[26px] sm:p-5 ${most ? "bg-emerald-100/80 dark:bg-emerald-500/15" : "bg-amber-100/80 dark:bg-amber-500/15"}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div>

@@ -5,7 +5,7 @@ export function DashboardSkeleton() {
   return (
     <div className="space-y-4">
       {/* Hero */}
-      <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-card p-5">
+      <div className="relative overflow-hidden rounded-[28px] border border-border/70 bg-card p-5">
         <div className="flex items-center gap-3">
           <Skeleton className="h-16 w-16 rounded-full" />
           <div className="flex-1 space-y-2">
@@ -33,7 +33,7 @@ export function DashboardSkeleton() {
       </div>
 
       {/* List */}
-      <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
+      <div className="overflow-hidden rounded-[28px] border border-border/70 bg-card">
         <div className="border-b border-border/60 p-4">
           <Skeleton className="h-3 w-24" />
           <Skeleton className="mt-2 h-5 w-32" />

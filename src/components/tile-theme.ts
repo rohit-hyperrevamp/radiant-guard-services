@@ -1,7 +1,10 @@
 /**
  * Shared tile design language — mirrors the dashboard metric tiles so every
  * KPI/stat tile across the platform reads the same way:
- * calm white surface, quiet label, crisp numeral, small tinted icon chip.
+ * vivid accent surface, quiet label, oversized numeral, solid accent icon chip.
+ *
+ * Palette pairs the Radiant brand blue with saturated corporate accents so the
+ * interior feels alive instead of washed out.
  */
 export type Accent =
   | "rose"
@@ -24,30 +27,33 @@ export const ACCENTS: Accent[] = [
   "indigo",
 ];
 
-/** Tile surfaces — one calm white card for every tile; colour lives only in the
- *  small icon chip and in semantic figures (good / attention / problem). */
-const NEUTRAL_TILE = "bg-card border-border/70 shadow-[0_1px_2px_rgb(15_23_42/0.04),0_8px_24px_-18px_rgb(15_23_42/0.18)] dark:bg-card";
+/** Tile surfaces — noticeably richer than plain pastels, still corporate. */
 export const ACCENT_TILE_BG: Record<Accent, string> = {
-  rose: NEUTRAL_TILE,
-  cyan: NEUTRAL_TILE,
-  lime: NEUTRAL_TILE,
-  violet: NEUTRAL_TILE,
-  amber: NEUTRAL_TILE,
-  emerald: NEUTRAL_TILE,
-  sky: NEUTRAL_TILE,
-  indigo: NEUTRAL_TILE,
+  rose: "bg-rose-200/60 dark:bg-rose-500/20",
+  cyan: "bg-cyan-200/60 dark:bg-cyan-500/20",
+  lime: "bg-lime-200/70 dark:bg-lime-500/20",
+  violet: "bg-violet-200/60 dark:bg-violet-500/20",
+  amber: "bg-amber-200/70 dark:bg-amber-500/20",
+  emerald: "bg-emerald-200/60 dark:bg-emerald-500/20",
+  /* Brand blue — the Radiant identity colour, used for headline tiles. */
+  sky: "bg-brand/12 dark:bg-brand/25",
+  indigo: "bg-indigo-200/60 dark:bg-indigo-500/20",
 };
 
-/** Icon chips — soft tinted discs with a coloured glyph. */
+/** Icon chips — solid accent discs with white glyphs for real contrast. */
 export const ACCENT_CHIP: Record<Accent, string> = {
-  rose: "bg-rose-500/10 text-rose-600 ring-rose-500/15 dark:bg-rose-400/15 dark:text-rose-300 dark:ring-rose-300/20",
-  cyan: "bg-cyan-500/10 text-cyan-700 ring-cyan-500/15 dark:bg-cyan-400/15 dark:text-cyan-300 dark:ring-cyan-300/20",
-  lime: "bg-lime-500/12 text-lime-700 ring-lime-500/20 dark:bg-lime-400/15 dark:text-lime-300 dark:ring-lime-300/20",
-  violet: "bg-violet-500/10 text-violet-600 ring-violet-500/15 dark:bg-violet-400/15 dark:text-violet-300 dark:ring-violet-300/20",
-  amber: "bg-amber-500/12 text-amber-700 ring-amber-500/20 dark:bg-amber-400/15 dark:text-amber-300 dark:ring-amber-300/20",
-  emerald: "bg-emerald-500/10 text-emerald-700 ring-emerald-500/15 dark:bg-emerald-400/15 dark:text-emerald-300 dark:ring-emerald-300/20",
-  sky: "bg-brand/10 text-brand ring-brand/20 dark:bg-brand/20 dark:text-white dark:ring-brand/30",
-  indigo: "bg-indigo-500/10 text-indigo-600 ring-indigo-500/15 dark:bg-indigo-400/15 dark:text-indigo-300 dark:ring-indigo-300/20",
+  rose: "bg-rose-500 text-white ring-rose-600/30 dark:bg-rose-400 dark:text-rose-950 dark:ring-rose-300/30",
+  cyan: "bg-cyan-600 text-white ring-cyan-700/30 dark:bg-cyan-400 dark:text-cyan-950 dark:ring-cyan-300/30",
+  lime: "bg-lime-600 text-white ring-lime-700/30 dark:bg-lime-400 dark:text-lime-950 dark:ring-lime-300/30",
+  violet:
+    "bg-violet-500 text-white ring-violet-600/30 dark:bg-violet-400 dark:text-violet-950 dark:ring-violet-300/30",
+  amber:
+    "bg-amber-500 text-white ring-amber-600/30 dark:bg-amber-400 dark:text-amber-950 dark:ring-amber-300/30",
+  emerald:
+    "bg-emerald-600 text-white ring-emerald-700/30 dark:bg-emerald-400 dark:text-emerald-950 dark:ring-emerald-300/30",
+  sky: "bg-brand text-white ring-brand/30 dark:bg-brand dark:text-white dark:ring-brand/40",
+  indigo:
+    "bg-indigo-500 text-white ring-indigo-600/30 dark:bg-indigo-400 dark:text-indigo-950 dark:ring-indigo-300/30",
 };
 
 /** Stable accent derived from a tile label, so colours stay consistent per page. */
