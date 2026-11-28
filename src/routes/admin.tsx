@@ -1037,16 +1037,18 @@ function SidebarGroup({
   const itemBase =
     "group relative flex w-full items-center gap-2.5 rounded-2xl px-2.5 py-2 text-[13px] font-medium transition-all";
   const itemIdle = "text-white/60 hover:bg-white/[0.07] hover:text-white";
-  const itemActive = "nav-active-glow";
+  const itemActive =
+    "bg-white text-black shadow-[0_10px_28px_-14px_rgba(0,0,0,0.6)]";
 
   const iconSpanBase = "grid h-7 w-7 shrink-0 place-items-center rounded-full transition-colors";
-  const iconSpanActive = "bg-white/20 text-white";
+  const iconSpanActive = "bg-black/10 text-black";
   const iconSpanIdle = "text-white/55 group-hover:text-white";
   // Collapsed rail: item is a perfect circle, active state is a solid white circle
   const collapsedItem = "h-11 w-11 mx-auto justify-center rounded-full p-0";
   const collapsedIcon =
     "grid h-11 w-11 place-items-center rounded-full transition-all duration-200";
-  const collapsedIconActive = "nav-active-glow";
+  const collapsedIconActive =
+    "bg-white text-black shadow-[0_10px_28px_-10px_rgba(0,0,0,0.65)]";
   const collapsedIconIdle =
     "text-white/55 hover:bg-white/[0.08] hover:text-white";
 
@@ -1151,7 +1153,7 @@ function SidebarGroup({
                 className={cn(
                   "relative flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12.5px] font-medium transition-colors",
                   a
-                    ? "nav-active-glow font-semibold"
+                    ? "bg-white text-black font-semibold"
                     : "text-white/55 hover:bg-white/[0.06] hover:text-white",
                 )}
               >
@@ -1319,7 +1321,7 @@ function CollapsedGroupPopover({
           className={cn(
             "mx-auto grid h-11 w-11 place-items-center rounded-full transition-all duration-200",
             groupActive
-              ? "nav-active-glow"
+              ? "bg-white text-black shadow-[0_10px_28px_-10px_rgba(0,0,0,0.65)]"
               : "text-white/55 hover:bg-white/[0.08] hover:text-white",
           )}
         >

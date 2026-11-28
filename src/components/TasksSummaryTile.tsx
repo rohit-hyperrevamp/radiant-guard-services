@@ -43,7 +43,7 @@ export function TasksSummaryTile({ summary }: { summary: { mine: Sum; created: S
       data-panel="true"
       to="/admin/tasks"
       search={{} as never}
-      className={`dashboard-summary-tile task-summary-tile group relative flex h-[124px] min-w-0 flex-col rounded-2xl border tile-aurora tile-c-violet p-3 sm:h-[164px] sm:rounded-2xl sm:p-5`}
+      className={`dashboard-summary-tile task-summary-tile group relative flex h-[124px] min-w-0 flex-col rounded-2xl border border-border/70 bg-card p-3 shadow-[0_1px_2px_rgb(15_23_42/0.04),0_10px_28px_-20px_rgb(15_23_42/0.2)] transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:shadow-[0_2px_4px_rgb(15_23_42/0.05),0_18px_40px_-22px_rgb(15_23_42/0.28)] sm:h-[164px] sm:rounded-2xl sm:p-5`}
     >
       <div className="flex items-center justify-between gap-2">
         <span className="dashboard-tile-title flex items-center gap-1.5 font-display text-[13px] font-medium text-foreground sm:text-[15px]">
