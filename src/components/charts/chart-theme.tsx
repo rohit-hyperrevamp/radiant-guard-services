@@ -6,16 +6,16 @@ import * as React from "react";
 import { compactNumberIN } from "@/lib/compact-money";
 
 export const CHART_PALETTE = [
-  "oklch(0.585 0.197 259)", // brand blue
-  "oklch(0.7 0.13 185)",    // teal
-  "oklch(0.78 0.14 75)",    // amber
-  "oklch(0.6 0.17 295)",    // violet
-  "oklch(0.66 0.18 18)",    // coral
-  "oklch(0.68 0.14 150)",   // green
-  "oklch(0.62 0.1 235)",    // steel blue
-  "oklch(0.72 0.12 340)",   // pink
-  "oklch(0.55 0.03 260)",   // slate
-  "oklch(0.75 0.13 110)",   // lime
+  "oklch(0.56 0.22 262)", // Radiant blue
+  "oklch(0.16 0 0)",      // black
+  "oklch(0.8 0.09 255)",  // light blue
+  "oklch(0.66 0.2 40)",   // orange
+  "oklch(0.86 0.19 125)", // lime
+  "oklch(0.66 0.15 160)", // green
+  "oklch(0.64 0.2 25)",   // coral
+  "oklch(0.6 0.18 295)",  // violet
+  "oklch(0.55 0 0)",      // grey
+  "oklch(0.8 0.16 75)",   // amber
 ];
 
 export const chartGrid = { stroke: "var(--border)", strokeOpacity: 0.7, vertical: false, strokeDasharray: "0" } as const;
