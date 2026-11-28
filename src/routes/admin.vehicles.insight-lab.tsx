@@ -733,7 +733,7 @@ function ChartView({
       <ResponsiveContainer width="100%" height={340}>
         <BarChart data={rows} margin={{ top: 12, right: 12, left: 0, bottom: 0 }} barCategoryGap="28%">
           <defs>
-            {seriesKeys.map((s, i) => <ChartGradient key={s} id={`il-bar-${i}`} color={PALETTE[i % PALETTE.length]} from={1} to={0.88} />)}
+            {seriesKeys.map((s, i) => <ChartGradient key={s} id={`il-bar-${i}`} color={PALETTE[i % PALETTE.length]} from={1} to={0.72} />)}
           </defs>
           <CartesianGrid {...chartGrid} />
           <XAxis dataKey="x" {...chartAxis} minTickGap={8} />
@@ -746,8 +746,8 @@ function ChartView({
               name={nameOf(s)}
               stackId={stacked ? "a" : undefined}
               fill={`url(#il-bar-${i})`}
-              maxBarSize={40}
-              radius={stacked ? (i === seriesKeys.length - 1 ? [12, 12, 0, 0] : 0) : [12, 12, 12, 12]}
+              maxBarSize={46}
+              radius={stacked ? (i === seriesKeys.length - 1 ? [6, 6, 0, 0] : 0) : [6, 6, 0, 0]}
             />
           ))}
         </BarChart>

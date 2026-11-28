@@ -51,7 +51,7 @@ export function PageHeader({
     <div
       className={cn("relative mb-2 pt-[env(safe-area-inset-top,0px)] sm:mb-5 sm:pt-0", className)}
     >
-      <div className="mobile-glass-surface relative overflow-hidden border-b border-border/50 bg-card/55 px-2 pb-2 pt-1 sm:rounded-2xl sm:border sm:border-border/70 sm:bg-card sm:p-7 hero-mesh">
+      <div className="mobile-glass-surface relative overflow-hidden border-b border-border/50 bg-card/55 px-2 pb-2 pt-1 sm:rounded-2xl sm:border sm:border-border/70 sm:bg-card/85 sm:p-6 sm:backdrop-blur-xl hero-mesh">
         <div className="relative flex min-w-0 flex-col gap-2.5 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-4">
           <div className="flex min-w-0 items-center gap-2.5 sm:items-start sm:gap-3">
             {Icon && (
@@ -63,11 +63,11 @@ export function PageHeader({
             )}
             <div className="min-w-0">
               {eyebrow && (
-                <div className="mb-1.5 inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-0.5 text-[11.5px] font-medium text-muted-foreground">
+                <div className="mb-1.5 inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-brand/15 to-violet-500/15 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-brand ring-1 ring-inset ring-brand/20">
                   {eyebrow}
                 </div>
               )}
-              <h1 className="text-gradient-live font-display text-[20px] font-semibold leading-tight tracking-tight sm:truncate sm:text-[34px]">
+              <h1 className="text-gradient-live font-display text-[20px] font-semibold leading-tight tracking-tight sm:truncate sm:text-[28px]">
                 {title}
               </h1>
               {description && (

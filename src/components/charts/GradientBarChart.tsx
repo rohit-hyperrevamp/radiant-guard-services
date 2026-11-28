@@ -18,8 +18,8 @@ type Props = {
 export function GradientBarChart({
   data,
   height = 220,
-  gradientFrom = "oklch(0.56 0.22 262)",
-  gradientTo = "oklch(0.5 0.22 264)",
+  gradientFrom = "oklch(0.585 0.197 259)",
+  gradientTo = "oklch(0.585 0.197 259 / 0.7)",
   formatValue,
   id = "grad-bar",
 }: Props) {
@@ -38,7 +38,7 @@ export function GradientBarChart({
           <XAxis dataKey="label" {...chartAxis} />
           <YAxis {...yAxisCompact} tickFormatter={formatValue ? (v) => (typeof v === "number" ? fmt(v) : String(v)) : yAxisCompact.tickFormatter} />
           <Tooltip {...chartTooltipStyle} formatter={(v: number) => [fmt(v), ""]} />
-          <Bar dataKey="value" radius={[12, 12, 12, 12]} maxBarSize={38} fill={`url(#${id})`}>
+          <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={44} fill={`url(#${id})`}>
             {data.map((_, i) => <Cell key={i} />)}
           </Bar>
         </BarChart>
