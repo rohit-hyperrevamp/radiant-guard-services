@@ -1691,18 +1691,14 @@ function LivePeopleCard({
 type Accent = "rose" | "cyan" | "lime" | "violet" | "amber" | "emerald" | "sky" | "indigo";
 
 const ACCENT_CHIP: Record<Accent, string> = {
-  rose: "bg-rose-50 text-rose-700 ring-rose-200/70 dark:bg-rose-500/10 dark:text-rose-300 dark:ring-rose-400/20",
-  cyan: "bg-cyan-50 text-cyan-700 ring-cyan-200/70 dark:bg-cyan-500/10 dark:text-cyan-300 dark:ring-cyan-400/20",
-  lime: "bg-lime-50 text-lime-700 ring-lime-200/70 dark:bg-lime-500/10 dark:text-lime-300 dark:ring-lime-400/20",
-  violet:
-    "bg-violet-50 text-violet-700 ring-violet-200/70 dark:bg-violet-500/10 dark:text-violet-300 dark:ring-violet-400/20",
-  amber:
-    "bg-amber-50 text-amber-700 ring-amber-200/70 dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-400/20",
-  emerald:
-    "bg-emerald-50 text-emerald-700 ring-emerald-200/70 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-400/20",
-  sky: "bg-sky-50 text-sky-700 ring-sky-200/70 dark:bg-sky-500/10 dark:text-sky-300 dark:ring-sky-400/20",
-  indigo:
-    "bg-indigo-50 text-indigo-700 ring-indigo-200/70 dark:bg-indigo-500/10 dark:text-indigo-300 dark:ring-indigo-400/20",
+  rose: "chip-grad tile-c-rose",
+  cyan: "chip-grad tile-c-cyan",
+  lime: "chip-grad tile-c-lime",
+  violet: "chip-grad tile-c-violet",
+  amber: "chip-grad tile-c-amber",
+  emerald: "chip-grad tile-c-emerald",
+  sky: "chip-grad tile-c-sky",
+  indigo: "chip-grad tile-c-indigo",
 };
 
 const ACCENT_BAR: Record<Accent, string> = {
@@ -1717,14 +1713,14 @@ const ACCENT_BAR: Record<Accent, string> = {
 };
 
 const ACCENT_TILE_BG: Record<Accent, string> = {
-  rose: "bg-card",
-  cyan: "bg-card",
-  lime: "bg-card",
-  violet: "bg-card",
-  amber: "bg-card",
-  emerald: "bg-card",
-  sky: "bg-card",
-  indigo: "bg-card",
+  rose: "tile-aurora tile-c-rose",
+  cyan: "tile-aurora tile-c-cyan",
+  lime: "tile-aurora tile-c-lime",
+  violet: "tile-aurora tile-c-violet",
+  amber: "tile-aurora tile-c-amber",
+  emerald: "tile-aurora tile-c-emerald",
+  sky: "tile-aurora tile-c-sky",
+  indigo: "tile-aurora tile-c-indigo",
 };
 
 function Shell({
@@ -1744,7 +1740,7 @@ function Shell({
     <Link
       to={to}
       search={scopedSearch as never}
-      className={`dashboard-summary-tile group relative flex h-[124px] min-w-0 flex-col overflow-hidden rounded-2xl border border-border/70 ${ACCENT_TILE_BG[accent]} p-3 shadow-[0_1px_2px_rgb(15_23_42/0.04),0_10px_28px_-20px_rgb(15_23_42/0.2)] transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:shadow-[0_2px_4px_rgb(15_23_42/0.05),0_18px_40px_-22px_rgb(15_23_42/0.28)] sm:h-[164px] sm:rounded-2xl sm:p-5`}
+      className={`dashboard-summary-tile group relative flex h-[124px] min-w-0 flex-col overflow-hidden rounded-2xl border ${ACCENT_TILE_BG[accent]} p-3 sm:h-[164px] sm:rounded-2xl sm:p-5`}
     >
       {children}
     </Link>
@@ -1783,7 +1779,7 @@ function TileHeader({
           </div>
         )}
       </div>
-      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-card text-foreground shadow-sm ring-1 ring-border/60 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 sm:h-9 sm:w-9">
+      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white/80 text-foreground shadow-sm ring-1 ring-white/70 backdrop-blur transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:rotate-12 sm:h-9 sm:w-9">
         <ArrowUpRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
       </span>
     </div>

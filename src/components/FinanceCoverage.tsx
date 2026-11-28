@@ -113,6 +113,7 @@ function Tile({
   icon: Icon,
   tone,
   progress,
+  color,
   onClick,
   pressed,
   actionLabel,
@@ -126,14 +127,15 @@ function Tile({
   tone?: "accent" | "success" | "warning" | "destructive";
   /** 0–100: renders a completion bar under the figure. */
   progress?: number;
+  /** Tile colour (gradient surface). */
+  color?: "sky" | "cyan" | "amber" | "violet" | "emerald" | "rose" | "indigo" | "lime";
   /** Makes the whole tile a button (e.g. to sort the list below by this figure). */
   onClick?: () => void;
   pressed?: boolean;
   actionLabel?: string;
 }) {
   const Root = onClick ? "button" : "div";
-  const barTone =
-    tone === "success" ? "bg-emerald-500" : tone === "warning" ? "bg-amber-500" : tone === "destructive" ? "bg-rose-500" : "bg-brand";
+  const c = color ?? (tone === "success" ? "emerald" : tone === "warning" ? "amber" : tone === "destructive" ? "rose" : "sky");
   return (
     <Root
       {...(onClick
@@ -147,18 +149,15 @@ function Tile({
           }
         : {})}
       className={cn(
-        "dashboard-summary-tile flex min-w-0 flex-col rounded-2xl border border-border/70 bg-card p-4 shadow-[0_1px_2px_rgb(15_23_42/0.04)]",
+        `dashboard-summary-tile tile-aurora tile-c-${c} group flex min-w-0 flex-col rounded-2xl border p-4`,
         onClick &&
-          "cursor-pointer text-left transition-all hover:-translate-y-0.5 hover:border-border hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "cursor-pointer text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         pressed && "ring-2 ring-brand/40",
       )}
     >
       <div className="flex items-center gap-2 text-[12.5px] font-medium text-muted-foreground">
         <span
-          className={cn(
-            "grid h-6 w-6 shrink-0 place-items-center rounded-full",
-            tone === "success" ? "bg-emerald-500/10 text-emerald-600" : tone === "warning" ? "bg-amber-500/12 text-amber-600" : tone === "destructive" ? "bg-rose-500/10 text-rose-600" : "bg-brand/10 text-brand",
-          )}
+          className={`chip-grad tile-c-${c} grid h-7 w-7 shrink-0 place-items-center rounded-full`}
         >
           <Icon className="h-3.5 w-3.5" />
         </span>
@@ -178,8 +177,8 @@ function Tile({
         </TileNumber>
       </span>
       {progress != null && (
-        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-          <div className={cn("h-full rounded-full transition-[width] duration-700", barTone)} style={{ width: `${Math.max(0, Math.min(100, progress))}%` }} />
+        <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/70 ring-1 ring-inset ring-black/5">
+          <div className={`bar-grad tile-c-${c} h-full rounded-full transition-[width] duration-1000`} style={{ width: `${Math.max(3, Math.min(100, progress))}%` }} />
         </div>
       )}
     </Root>
@@ -298,6 +297,7 @@ function CoverageCard({
           exact={summaryExact(totals.actual, totals.ready)}
           sub={`${rows.length} clients · ${rows.filter(r => r.totals_pending).length} pending`}
           icon={icons.actual}
+          color="cyan"
         />
         <Tile
           label="Remaining to full month"
@@ -305,13 +305,14 @@ function CoverageCard({
           exact={totals.ready > 0 ? fmtINR(Math.abs(Math.round(totals.remaining))) : undefined}
           sub={totals.ready === 0 ? "Awaiting updated totals" : totals.remaining >= 0 ? "Contract value not yet earned" : "Earned above commitment"}
           icon={TrendingDown}
+          color="amber"
         />
         <Tile
           label="MTD completion"
           value={totals.ready > 0 ? `${totals.coverage}%` : "—"}
           sub="Actual ÷ full-month committed"
           icon={Gauge}
-          tone={toneTile}
+          color="violet"
           progress={totals.ready > 0 ? totals.coverage : undefined}
         />
       </div>
@@ -735,6 +736,7 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
         />
         <Tile
           label="Earned gross"
+          color="cyan"
           value={summaryMoney(totals.earnedGross, totals.ready)}
           exact={summaryExact(totals.earnedGross, totals.ready)}
           sub="Gross earned from attendance"
@@ -743,6 +745,7 @@ export function ProfitabilityCard({ rows: allRows }: { rows: UnitFinanceRow[] })
         />
         <Tile
           label="Employer contribution"
+          color="violet"
           value={summaryMoney(totals.employerContribution, totals.ready)}
           exact={summaryExact(totals.employerContribution, totals.ready)}
           sub="Employer-side cost"

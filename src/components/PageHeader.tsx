@@ -51,23 +51,23 @@ export function PageHeader({
     <div
       className={cn("relative mb-2 pt-[env(safe-area-inset-top,0px)] sm:mb-5 sm:pt-0", className)}
     >
-      <div className="mobile-glass-surface relative overflow-hidden border-b border-border/50 bg-card/55 px-2 pb-2 pt-1 sm:rounded-2xl sm:border sm:border-border/70 sm:bg-card sm:p-6">
+      <div className="mobile-glass-surface relative overflow-hidden border-b border-border/50 bg-card/55 px-2 pb-2 pt-1 sm:rounded-2xl sm:border sm:border-border/70 sm:bg-card/85 sm:p-6 sm:backdrop-blur-xl hero-mesh">
         <div className="relative flex min-w-0 flex-col gap-2.5 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-4">
           <div className="flex min-w-0 items-center gap-2.5 sm:items-start sm:gap-3">
             {Icon && (
               <div className="mt-0.5 shrink-0">
-                <div className="grid h-8 w-8 place-items-center rounded-lg bg-accent/10 text-accent sm:h-11 sm:w-11 sm:rounded-xl sm:ring-1 sm:ring-inset sm:ring-accent/20">
+                <div className="chip-grad tile-c-sky grid h-8 w-8 place-items-center rounded-lg sm:h-11 sm:w-11 sm:rounded-xl">
                   <Icon className="h-4.5 w-4.5 sm:h-[19px] sm:w-[19px]" />
                 </div>
               </div>
             )}
             <div className="min-w-0">
               {eyebrow && (
-                <div className="mb-1 text-[12px] font-medium text-accent">
+                <div className="mb-1.5 inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-brand/15 to-violet-500/15 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-brand ring-1 ring-inset ring-brand/20">
                   {eyebrow}
                 </div>
               )}
-              <h1 className="font-display text-[20px] font-semibold leading-tight tracking-tight text-foreground sm:truncate sm:text-[26px]">
+              <h1 className="text-gradient-live font-display text-[20px] font-semibold leading-tight tracking-tight sm:truncate sm:text-[28px]">
                 {title}
               </h1>
               {description && (

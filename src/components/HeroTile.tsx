@@ -36,7 +36,7 @@ export function HeroTile({
   return (
     <div
       className={cn(
-        "mobile-glass-surface relative overflow-hidden rounded-xl border border-border/70 bg-card/70 px-3 py-2.5 sm:rounded-2xl sm:bg-card sm:p-6",
+        "mobile-glass-surface hero-mesh relative overflow-hidden rounded-xl border border-border/70 bg-card/70 px-3 py-2.5 sm:rounded-2xl sm:bg-card/85 sm:p-6 sm:backdrop-blur-xl",
         className,
       )}
     >
@@ -44,13 +44,13 @@ export function HeroTile({
       <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-5">
         <div className="min-w-0 space-y-1 sm:space-y-3">
           {eyebrow && (
-            <div className="hidden items-center gap-1.5 text-[12px] font-medium text-accent sm:inline-flex">
+            <div className="hidden items-center gap-1.5 rounded-full bg-gradient-to-r from-brand/15 to-violet-500/15 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-brand ring-1 ring-inset ring-brand/20 sm:inline-flex">
               <Icon className="h-3.5 w-3.5" />
               {eyebrow}
             </div>
           )}
           <div className="flex min-w-0 items-center gap-2 sm:flex-wrap sm:items-end">
-            <div className="truncate font-display text-[22px] font-semibold leading-tight tracking-tight text-foreground sm:text-[28px] md:text-[30px]">
+            <div className="text-gradient-live truncate font-display text-[22px] font-semibold leading-tight tracking-tight sm:text-[30px] md:text-[32px]">
               {title}
             </div>
             {subtitle && (
