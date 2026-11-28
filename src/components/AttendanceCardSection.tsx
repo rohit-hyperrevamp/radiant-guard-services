@@ -18,6 +18,10 @@ function mimeFor(name: string) {
   const ext = name.split(".").pop()?.toLowerCase();
   if (ext === "png") return "image/png";
   if (ext === "jpg" || ext === "jpeg") return "image/jpeg";
+  if (ext === "xlsx" || ext === "xlsm")
+    return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+  if (ext === "xls") return "application/vnd.ms-excel";
+  if (ext === "csv") return "text/csv";
   return "application/pdf";
 }
 
